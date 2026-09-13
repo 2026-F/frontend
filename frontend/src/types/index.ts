@@ -49,3 +49,13 @@ export interface Bid {
   status: string;
   createdAt: string;
 }
+
+export interface Livestream {
+  id: string;
+  auctionId: string;
+  ivsChannelArn: string | null;
+  streamKey: string | null;
+  ingestEndpoint: string | null;
+  playbackUrl: string | null;
+  status: "SCHEDULED" | "LIVE" | "ENDED";
+}
