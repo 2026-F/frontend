@@ -59,3 +59,12 @@ export interface Livestream {
   playbackUrl: string | null;
   status: "SCHEDULED" | "LIVE" | "ENDED";
 }
+
+export interface ArtworkMedia {
+  id: string;
+  artworkId: string;
+  mediaType: "PHOTO" | "VIDEO" | "MODEL_3D";
+  url: string | null;
+  sourceUrl: string | null;
+  sortOrder: number;
+}
