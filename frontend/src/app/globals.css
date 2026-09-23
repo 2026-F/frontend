@@ -3,11 +3,60 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #111111;
+  --background: #0b0b14;
+  --foreground: #f5f3f8;
+}
+
+* {
+  border-color: theme("colors.ink.700");
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
+}
+
+::selection {
+  background: theme("colors.accent.DEFAULT");
+  color: #ffffff;
+}
+
+@layer components {
+  .container-page {
+    @apply w-full px-4;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.2em] text-accent-light;
+  }
+
+  .card-surface {
+    @apply rounded-xl border border-ink-700 bg-ink-800/60 shadow-card backdrop-blur-sm;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-accent to-pink
+      px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent/20 transition
+      hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-ink-500
+      px-5 py-2.5 text-sm font-semibold text-cream transition hover:border-accent hover:text-accent-light
+      disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold
+      uppercase tracking-wide;
+  }
+
+  .input-field {
+    @apply w-full rounded-lg border border-ink-500 bg-ink-900 px-4 py-2.5 text-sm text-cream
+      placeholder:text-ink-300 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+  }
 }
