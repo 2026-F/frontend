@@ -44,7 +44,7 @@ export async function getLots(): Promise<Lot[]> {
         return {
           artwork,
           auction,
-          artistName: mockMatch?.artistName ?? "작가 미상",
+          artistName: artwork.artistName ?? mockMatch?.artistName ?? "작가 미상",
           category: mockMatch?.category ?? "작품 정보 준비중",
           description: mockMatch?.description ?? "작품 설명이 아직 등록되지 않았습니다.",
           images: mockMatch?.images ?? (artwork.imageUrl ? [artwork.imageUrl] : []),
