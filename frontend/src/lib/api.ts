@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Artwork, Auction, BidResult } from "@/types";
+import type { Artwork, Auction, BidResult, PresignedUploadResponse } from "@/types";
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
@@ -80,4 +80,54 @@ export function subscribeAuctionEvents(
   };
 
   return () => source.close();
+}
+
+// -----------------------------------------------------------------------
+// 작품 미디어 업로드 (사진 / 영상 / 3D 모델)
+// 1) presigned URL 발급 → 2) S3에 직접 PUT → 3) /complete로 업로드 완료 알림
+// /complete에는 1)에서 받은 objectKey와 mediaType을 그대로 돌려보내야 한다.
+// (백엔드가 완료 시점에는 contentType을 알 수 없어 mediaType으로 PHOTO/VIDEO를 구분함 — 백엔드 이슈 #11)
+// -----------------------------------------------------------------------
+
+export async function requestMediaUploadUrl(
+  artworkId: number,
+  fileName: string,
+  contentType: string,
+): Promise<PresignedUploadResponse> {
+  const res = await api.post<PresignedUploadResponse>(`/api/artworks/${artworkId}/media/presigned-url`, null, {
+    params: { fileName, contentType },
+  });
+  return res.data;
+}
+
+export async function completeMediaUpload(
+  artworkId: number,
+  objectKey: string,
+  mediaType: PresignedUploadResponse["mediaType"],
+): Promise<void> {
+  await api.post(`/api/artworks/${artworkId}/media/complete`, null, {
+    params: { objectKey, mediaType },
+  });
+}
+
+/**
+ * 파일 하나를 업로드하고 완료 처리까지 한 번에 수행한다.
+ * S3 PUT은 공용 axios 인스턴스(기본 Content-Type: application/json, timeout 4초)를 쓰면
+ * 서명 불일치·타임아웃이 나기 때문에 fetch로 따로 보낸다.
+ */
+export async function uploadArtworkMedia(artworkId: number, file: File): Promise<PresignedUploadResponse> {
+  const contentType = file.type || "application/octet-stream";
+  const presigned = await requestMediaUploadUrl(artworkId, file.name, contentType);
+
+  const putRes = await fetch(presigned.uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": contentType },
+    body: file,
+  });
+  if (!putRes.ok) {
+    throw new Error(`미디어 업로드 실패 (status=${putRes.status})`);
+  }
+
+  await completeMediaUpload(artworkId, presigned.objectKey, presigned.mediaType);
+  return presigned;
 }
