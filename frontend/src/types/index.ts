@@ -82,10 +82,19 @@ export interface Livestream {
   status: "SCHEDULED" | "LIVE" | "ENDED";
 }
 
+export type MediaType = "PHOTO" | "VIDEO" | "MODEL_3D";
+
+// POST /api/artworks/{artworkId}/media/presigned-url 응답
+export interface PresignedUploadResponse {
+  uploadUrl: string;
+  objectKey: string;
+  mediaType: MediaType;
+}
+
 export interface ArtworkMedia {
   id: number;
   artworkId: number;
-  mediaType: "PHOTO" | "VIDEO" | "MODEL_3D";
+  mediaType: MediaType;
   url: string | null;
   sourceUrl: string | null;
   sortOrder: number;
