@@ -2,15 +2,39 @@
 
 export type ArtworkStatus = "PENDING_REVIEW" | "PREVIEW" | "IN_AUCTION" | "SOLD" | "REJECTED";
 
+export type ArtworkCategory =
+  | "PAINTING"
+  | "DRAWING"
+  | "PRINT"
+  | "PHOTOGRAPHY"
+  | "SCULPTURE"
+  | "CRAFT"
+  | "MIXED_MEDIA"
+  | "DIGITAL"
+  | "OTHER";
+
+// GET /api/artworks 목록 항목 기준. consignorId·certificateUrl은 목록 응답에 없고 상세에만 있어 optional.
 export interface Artwork {
   id: number;
-  consignorId: number | null;
+  consignorId?: number | null;
+  artistId?: number | null;
+  artistName?: string | null;
+  category?: ArtworkCategory | null;
   title: string;
   startPrice: number;
-  estimatedPrice: number;
-  certificateUrl: string | null;
+  estimatedPrice: number | null;
+  certificateUrl?: string | null;
   imageUrl: string | null;
   status: ArtworkStatus;
+}
+
+// 목록 API 공통 페이지 응답
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 }
 
 export type AuctionStatus = "SCHEDULED" | "PREVIEW" | "ONGOING" | "EXTENDED" | "CLOSED";

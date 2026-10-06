@@ -34,9 +34,10 @@ api.interceptors.response.use(
 // 나중에 엔드포인트가 추가되면 이 파일만 채우면 되도록 시그니처를 미리 맞춰뒀습니다.
 // -----------------------------------------------------------------------
 
-export async function fetchArtworks(): Promise<Artwork[]> {
-  const res = await api.get<Artwork[]>("/api/artworks");
-  return res.data;
+// GET /api/artworks는 페이지 응답(content, totalElements 등)을 준다. 기본으로 공개 상태(프리뷰·경매 중·낙찰) 작품만 온다.
+export async function fetchArtworks(params?: { keyword?: string; page?: number; size?: number }): Promise<Artwork[]> {
+  const res = await api.get<PageResponse<Artwork>>("/api/artworks", { params });
+  return res.data.content;
 }
 
 export async function fetchAuction(auctionId: number): Promise<Auction> {
