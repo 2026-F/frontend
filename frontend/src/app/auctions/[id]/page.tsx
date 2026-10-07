@@ -21,7 +21,7 @@ export default async function AuctionDetailPage({ params }: { params: { id: stri
       <BidPanel lot={lot} />
 
       <div className="flex gap-2 border-t border-ink-700 pt-5">
-        <Link href={`/artworks/${lot.artwork.id}`} className="btn-outline flex-1">
+        <Link href={`/artworks/${lot.artwork.id}?auctionId=${lot.auction.id}`} className="btn-outline flex-1">
           작품 상세
         </Link>
         <Link href={`/artworks/${lot.artwork.id}/viewer`} className="btn-outline flex-1">

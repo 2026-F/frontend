@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Artwork, Auction, BidResult, PresignedUploadResponse } from "@/types";
+import type { Artwork, ArtworkDetail, Auction, BidResult, PageResponse, PresignedUploadResponse } from "@/types";
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
@@ -38,6 +38,11 @@ api.interceptors.response.use(
 export async function fetchArtworks(params?: { keyword?: string; page?: number; size?: number }): Promise<Artwork[]> {
   const res = await api.get<PageResponse<Artwork>>("/api/artworks", { params });
   return res.data.content;
+}
+
+export async function fetchArtworkDetail(artworkId: number): Promise<ArtworkDetail> {
+  const res = await api.get<ArtworkDetail>(`/api/artworks/${artworkId}`);
+  return res.data;
 }
 
 export async function fetchAuction(auctionId: number): Promise<Auction> {
