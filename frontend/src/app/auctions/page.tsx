@@ -5,10 +5,12 @@ export default async function AuctionsPage() {
   const lots = await getLots();
 
   return (
-    <div className="container-page flex flex-col gap-6 py-6">
+    <div className="container-page flex flex-col gap-6 py-5">
       <div>
-        <p className="eyebrow">Auctions</p>
-        <h1 className="font-display text-2xl font-semibold text-cream">경매 목록</h1>
+        <h1 className="text-[25px] font-black tracking-[-0.05em] text-[#171717]">AUCTION</h1>
+        <p className="mt-1 text-[13px] font-semibold text-[#171717]">
+          진행 중인 경매와 예정 작품을 확인하세요.
+        </p>
       </div>
       <AuctionListClient lots={lots} />
     </div>
