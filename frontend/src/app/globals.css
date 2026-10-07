@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #0b0b14;
-  --foreground: #f5f3f8;
+  --background: #f2f2f0;
+  --foreground: #111111;
 }
 
 * {
@@ -13,11 +13,27 @@
 
 html {
   scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
+  scrollbar-width: none;
+}
+
+body::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 ::selection {

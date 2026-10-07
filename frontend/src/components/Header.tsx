@@ -24,10 +24,13 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-ink-700 bg-ink-900/95 backdrop-blur">
-      <div className="flex h-14 items-center justify-between px-4">
-        <Link href="/" className="font-display text-lg font-bold tracking-tight text-cream">ART<span className="bg-gradient-to-r from-accent to-pink bg-clip-text text-transparent">BID</span></Link>
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-ink-300"><span className="h-2 w-2 rounded-full bg-red-500" /> LIVE</div>
+    <header className="sticky top-0 z-40 border-b border-[#e8e8e5] bg-white/95 backdrop-blur">
+      <div className="flex h-[58px] items-center justify-between px-[18px] text-[#171717]">
+        <Link href="/" className="text-[25px] font-extrabold tracking-[-0.055em]">ArtBid</Link>
+        <div className="flex items-center gap-6 text-[13px] font-medium">
+          <Link href="/auctions">검색</Link>
+          <Link href="/mypage">알림</Link>
+        </div>
       </div>
     </header>
   );

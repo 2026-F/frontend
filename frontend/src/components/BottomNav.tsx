@@ -51,7 +51,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky bottom-0 z-50 shrink-0 border-t border-[#ecece8] bg-white" aria-label="주요 메뉴">
+    <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-[390px] -translate-x-1/2 border-t border-[#dededb] bg-white" aria-label="주요 메뉴">
       <div className="grid h-[62px] grid-cols-4 px-3">
         {TABS.map(({ href, label, Icon }) => {
           const active = label === "HOME"
