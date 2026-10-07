@@ -1,35 +1,18 @@
-import axios from 'axios';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { ArtworkStatusBadge } from '@/components/StatusBadge';
-import { fetchArtworkDetail, fetchAuction } from '@/lib/api';
-import { formatDateTime, formatWon } from '@/lib/format';
-import type { ArtworkCategory, ArtworkDetail, Auction } from '@/types';
-
-const CATEGORY_LABELS: Record<ArtworkCategory, string> = {
-  PAINTING: '회화',
-  DRAWING: '드로잉',
-  PRINT: '판화',
-  PHOTOGRAPHY: '사진',
-  SCULPTURE: '조각',
-  CRAFT: '공예',
-  MIXED_MEDIA: '혼합 매체',
-  DIGITAL: '디지털',
-  OTHER: '기타',
-};
+import axios from "axios";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { fetchArtworkDetail, fetchAuction } from "@/lib/api";
+import { formatWon } from "@/lib/format";
+import type { ArtworkDetail, Auction } from "@/types";
 
 type ArtworkDetailPageProps = {
   params: { id: string };
   searchParams?: { auctionId?: string };
 };
 
-async function getAuctionContext(
-  auctionIdValue: string | undefined,
-  artworkId: number,
-): Promise<Auction | null> {
-  if (!auctionIdValue) return null;
-
-  const auctionId = Number(auctionIdValue);
+async function getAuctionContext(value: string | undefined, artworkId: number): Promise<Auction | null> {
+  if (!value) return null;
+  const auctionId = Number(value);
   if (!Number.isInteger(auctionId) || auctionId <= 0) return null;
 
   try {
@@ -40,9 +23,17 @@ async function getAuctionContext(
   }
 }
 
-function formatDimensions(widthCm: number | null, heightCm: number | null, depthCm: number | null) {
-  const values = [widthCm, heightCm, depthCm].filter((value): value is number => value !== null);
-  return values.length > 0 ? `${values.join(' × ')} cm` : null;
+function dimensionsOf(artwork: ArtworkDetail) {
+  const values = [artwork.widthCm, artwork.heightCm, artwork.depthCm].filter(
+    (value): value is number => value !== null,
+  );
+  return values.length ? `${values.join(" × ")} cm` : null;
+}
+
+function auctionState(auction: Auction) {
+  if (auction.status === "ONGOING" || auction.status === "EXTENDED") return "진행 중";
+  if (auction.status === "CLOSED") return "종료";
+  return "프리뷰";
 }
 
 export default async function ArtworkDetailPage({ params, searchParams }: ArtworkDetailPageProps) {
@@ -59,158 +50,94 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
 
   const auction = await getAuctionContext(searchParams?.auctionId, artwork.id);
   const photos = artwork.media
-    .filter((item) => item.mediaType === 'PHOTO' && item.url)
+    .filter((item) => item.mediaType === "PHOTO" && item.url)
     .sort((a, b) => a.sortOrder - b.sortOrder);
   const videos = artwork.media
-    .filter((item) => item.mediaType === 'VIDEO')
+    .filter((item) => item.mediaType === "VIDEO")
     .sort((a, b) => a.sortOrder - b.sortOrder);
   const hasModel = artwork.media.some(
-    (item) => item.mediaType === 'MODEL_3D' && (item.url || item.sourceUrl),
+    (item) => item.mediaType === "MODEL_3D" && (item.url || item.sourceUrl),
   );
   const primaryImage = photos[0]?.url ?? artwork.imageUrl;
-  const dimensions = formatDimensions(artwork.widthCm, artwork.heightCm, artwork.depthCm);
-  const category = artwork.category ? CATEGORY_LABELS[artwork.category] : '분류 미정';
+  const dimensions = dimensionsOf(artwork);
+  const currentPrice = auction?.currentPrice ?? artwork.startPrice;
+  const nextBid = auction ? auction.currentPrice + auction.minBidUnit : null;
 
   return (
-    <div className="container-page flex flex-col gap-6 py-6">
-      <section className="flex flex-col gap-3">
-        <div className="flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-2xl border border-ink-700 bg-ink-800">
+    <div className="min-h-full bg-white text-[#111111]">
+      <section className="px-4 pt-3">
+        <div className="relative flex h-[225px] items-center justify-center overflow-hidden rounded-[10px] bg-[linear-gradient(135deg,#def6e7_0%,#c9ebef_38%,#93afff_100%)]">
           {primaryImage ? (
             <img src={primaryImage} alt={artwork.title} className="h-full w-full object-cover" />
           ) : (
-            <p className="text-sm text-ink-400">등록된 대표 이미지가 없습니다.</p>
+            <span className="sr-only">등록된 대표 이미지가 없습니다.</span>
           )}
+          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#42433f] shadow-sm">
+            {auction ? "경매 프리뷰" : "작품 프리뷰"}
+          </span>
         </div>
 
         {photos.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
             {photos.slice(1).map((photo) => (
-              <div
-                key={photo.id}
-                className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-ink-700"
-              >
-                <img
-                  src={photo.url!}
-                  alt={`${artwork.title} 추가 이미지`}
-                  className="h-full w-full object-cover"
-                />
+              <div key={photo.id} className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-[#e6e7e2]">
+                <img src={photo.url!} alt={`${artwork.title} 추가 이미지`} className="h-full w-full object-cover" />
               </div>
             ))}
           </div>
         )}
       </section>
 
-      <section className="flex flex-col gap-4">
-        <div>
-          <ArtworkStatusBadge status={artwork.status} />
-          <h1 className="mt-2 font-display text-2xl font-semibold text-cream">{artwork.title}</h1>
-          <p className="mt-1 text-sm text-ink-300">
-            {artwork.artist?.name ?? '작가 미상'} · {category}
-          </p>
-        </div>
-
-        <p className="whitespace-pre-line text-sm leading-relaxed text-ink-200">
-          {artwork.description || '작품 설명이 아직 등록되지 않았습니다.'}
+      <section className="px-5 pb-5 pt-4">
+        <p className="text-[10px] font-medium text-[#74756f]">{artwork.artist?.name ?? "작가 미상"}</p>
+        <h2 className="mt-1 text-[20px] font-bold leading-tight tracking-[-0.04em]">{artwork.title}</h2>
+        <p className="mt-1.5 text-[10px] text-[#858680]">
+          {[artwork.medium, dimensions, artwork.productionYear].filter(Boolean).join(", ") || "작품 정보 준비 중"}
         </p>
 
-        <dl className="grid grid-cols-2 gap-3 rounded-xl border border-ink-700 bg-ink-800/60 p-4">
-          <div>
-            <dt className="text-[11px] text-ink-400">시작가</dt>
-            <dd className="font-display text-base text-cream">{formatWon(artwork.startPrice)}</dd>
-          </div>
-          <div>
-            <dt className="text-[11px] text-ink-400">추정가</dt>
-            <dd className="font-display text-base text-cream">
-              {formatWon(artwork.estimatedPrice)}
-            </dd>
-          </div>
-          {artwork.medium && (
-            <div>
-              <dt className="text-[11px] text-ink-400">재료</dt>
-              <dd className="text-sm text-ink-100">{artwork.medium}</dd>
-            </div>
-          )}
-          {dimensions && (
-            <div>
-              <dt className="text-[11px] text-ink-400">크기</dt>
-              <dd className="text-sm text-ink-100">{dimensions}</dd>
-            </div>
-          )}
-          {artwork.productionYear && (
-            <div>
-              <dt className="text-[11px] text-ink-400">제작 연도</dt>
-              <dd className="text-sm text-ink-100">{artwork.productionYear}</dd>
-            </div>
-          )}
-        </dl>
+        <div className="my-4 h-px bg-[#efefeb]" />
 
-        {videos.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <h2 className="font-display text-lg font-semibold text-cream">작품 영상</h2>
-            {videos.map((video) =>
-              video.url ? (
-                <video
-                  key={video.id}
-                  controls
-                  playsInline
-                  className="w-full rounded-xl border border-ink-700 bg-black"
-                >
-                  <source src={video.url} />
-                  브라우저에서 영상을 재생할 수 없습니다.
-                </video>
-              ) : (
-                <div key={video.id} className="card-surface p-4 text-sm text-ink-300">
-                  영상을 감상할 수 있도록 변환 중입니다.
-                </div>
-              ),
-            )}
-          </div>
+        <p className="text-[10px] font-medium text-[#74756f]">현재 경매가</p>
+        <p className="mt-1 text-[25px] font-extrabold leading-none tracking-[-0.035em]">{formatWon(currentPrice)}</p>
+        {nextBid && <p className="mt-2 text-[10px] font-semibold text-[#ff4e44]">다음 예상가 {formatWon(nextBid)}</p>}
+
+        {auction && (
+          <dl className="mt-4 space-y-2 rounded-[8px] bg-[#f6f7f2] px-4 py-3 text-[10px]">
+            <div className="flex items-center justify-between gap-4">
+              <dt className="text-[#74756f]">추정가</dt>
+              <dd className="font-semibold text-[#272824]">{formatWon(artwork.startPrice)} — {formatWon(artwork.estimatedPrice)}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <dt className="text-[#74756f]">구매 수수료</dt>
+              <dd className="font-semibold text-[#272824]">낙찰가의 10%</dd>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <dt className="text-[#74756f]">상태</dt>
+              <dd className="font-semibold text-[#272824]">{auctionState(auction)}</dd>
+            </div>
+          </dl>
         )}
 
         {auction && (
-          <div className="card-surface grid grid-cols-2 gap-3 p-4">
-            <div>
-              <p className="text-[11px] text-ink-400">프리뷰 기간</p>
-              <p className="text-xs text-ink-200">
-                {formatDateTime(auction.previewStart)} ~ {formatDateTime(auction.previewEnd)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] text-ink-400">경매 마감</p>
-              <p className="text-xs text-ink-200">{formatDateTime(auction.auctionEndAt)}</p>
-            </div>
-          </div>
+          <Link href={`/auctions/${auction.id}`} className="mt-4 flex h-12 w-full items-center justify-center rounded-[7px] bg-[#a8ff00] text-[13px] font-extrabold text-[#111111] transition active:scale-[0.99]">
+            {formatWon(nextBid ?? currentPrice)} 입찰하기
+          </Link>
         )}
 
-        <div className="flex flex-col gap-2 pt-1">
-          {auction && (
-            <Link href={`/auctions/${auction.id}`} className="btn-primary w-full">
-              실시간 입찰하러 가기
-            </Link>
-          )}
-          <div className="flex gap-2">
-            {hasModel && (
-              <Link href={`/artworks/${artwork.id}/viewer`} className="btn-outline flex-1">
-                3D로 보기
-              </Link>
-            )}
-            {auction && (
-              <Link href={`/auctions/${auction.id}/watch`} className="btn-outline flex-1">
-                라이브 시청
-              </Link>
-            )}
+        {(hasModel || videos.length > 0 || artwork.description || artwork.certificateUrl) && (
+          <div className="mt-6 border-t border-[#efefeb] pt-5">
+            <h3 className="text-[14px] font-bold">작품 상세</h3>
+            {artwork.description && <p className="mt-2 whitespace-pre-line text-[12px] leading-5 text-[#666762]">{artwork.description}</p>}
+            <div className="mt-4 flex gap-2">
+              {hasModel && <Link href={`/artworks/${artwork.id}/viewer`} className="flex h-10 flex-1 items-center justify-center rounded-lg border border-[#dfe0da] text-[11px] font-semibold">3D로 보기</Link>}
+              {artwork.certificateUrl && <a href={artwork.certificateUrl} target="_blank" rel="noreferrer" className="flex h-10 flex-1 items-center justify-center rounded-lg border border-[#dfe0da] text-[11px] font-semibold">보증서 확인</a>}
+            </div>
+            {videos.map((video) => video.url ? (
+              <video key={video.id} controls playsInline className="mt-4 w-full rounded-lg bg-black"><source src={video.url} />브라우저에서 영상을 재생할 수 없습니다.</video>
+            ) : (
+              <p key={video.id} className="mt-3 rounded-lg bg-[#f6f7f2] p-3 text-[11px] text-[#74756f]">영상을 감상할 수 있도록 변환 중입니다.</p>
+            ))}
           </div>
-        </div>
-
-        {artwork.certificateUrl && (
-          <a
-            href={artwork.certificateUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm text-accent-light underline"
-          >
-            작품 보증서 확인
-          </a>
         )}
       </section>
     </div>

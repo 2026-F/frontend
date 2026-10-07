@@ -35,29 +35,29 @@ export default function RootLayout({
         상태바 + 홈 인디케이터)을 그려주고, 실제 스마트폰(<640px)에서는 그 장식을 다 지우고
         화면을 꽉 채움 — 진짜 폰에서는 이미 진짜 상태바가 있으니까.
       */}
-      <body className="h-full overflow-hidden bg-ink-950 font-sans text-cream antialiased sm:flex sm:items-center sm:justify-center">
-        <div className="relative mx-auto h-full w-full max-w-[430px] sm:my-6 sm:h-[min(880px,calc(100vh-3rem))] sm:rounded-[3rem] sm:bg-ink-950 sm:p-3 sm:shadow-2xl sm:ring-1 sm:ring-black/60">
+      <body className="h-full overflow-hidden bg-[#b2b2b2] font-sans antialiased sm:flex sm:items-center sm:justify-center">
+        <div className="relative mx-auto h-full w-full max-w-[414px] sm:my-6 sm:h-[min(868px,calc(100vh-3rem))] sm:rounded-[3rem] sm:bg-[#090909] sm:p-3 sm:shadow-2xl sm:ring-1 sm:ring-black/60">
           {/* 측면 버튼 장식 (볼륨/전원) — 데스크톱 프레임에서만 보임 */}
           <span className="pointer-events-none absolute -left-[3px] top-28 hidden h-8 w-[3px] rounded-l bg-ink-700 sm:block" />
           <span className="pointer-events-none absolute -left-[3px] top-40 hidden h-14 w-[3px] rounded-l bg-ink-700 sm:block" />
           <span className="pointer-events-none absolute -right-[3px] top-32 hidden h-16 w-[3px] rounded-r bg-ink-700 sm:block" />
 
-          <div className="relative flex h-full w-full flex-col overflow-y-auto bg-ink-900 sm:rounded-[2.25rem]">
+          <div className="relative flex h-full w-full flex-col overflow-y-auto bg-white sm:rounded-[2.25rem]">
             {/* 상태바 + 노치 (데스크톱 프레임 장식용, 실제 폰에선 숨김) */}
-            <div className="sticky top-0 z-50 hidden shrink-0 bg-ink-900 sm:block">
-              <div className="relative flex items-center justify-between px-6 pb-1 pt-2 text-[11px] font-semibold text-cream">
+            <div className="sticky top-0 z-50 hidden shrink-0 bg-white sm:block">
+              <div className="relative flex items-center justify-between px-6 pb-1 pt-2 text-[11px] font-semibold text-[#111111]">
                 <span>9:41</span>
                 <div className="absolute left-1/2 top-1.5 h-4 w-24 -translate-x-1/2 rounded-full bg-ink-950" />
                 <span className="flex items-center gap-1.5">
                   <span className="flex items-end gap-[2px]">
-                    <span className="h-1 w-[3px] rounded-sm bg-cream" />
-                    <span className="h-1.5 w-[3px] rounded-sm bg-cream" />
-                    <span className="h-2 w-[3px] rounded-sm bg-cream" />
-                    <span className="h-2.5 w-[3px] rounded-sm bg-cream" />
+                    <span className="h-1 w-[3px] rounded-sm bg-[#111111]" />
+                    <span className="h-1.5 w-[3px] rounded-sm bg-[#111111]" />
+                    <span className="h-2 w-[3px] rounded-sm bg-[#111111]" />
+                    <span className="h-2.5 w-[3px] rounded-sm bg-[#111111]" />
                   </span>
-                  <span className="relative h-3 w-6 rounded-[3px] border border-cream/80">
-                    <span className="absolute inset-y-[1.5px] left-[1.5px] w-4 rounded-[1px] bg-cream" />
-                    <span className="absolute -right-[3px] top-1/2 h-1.5 w-[2px] -translate-y-1/2 rounded-r-sm bg-cream/80" />
+                  <span className="relative h-3 w-6 rounded-[3px] border border-[#111111]/80">
+                    <span className="absolute inset-y-[1.5px] left-[1.5px] w-4 rounded-[1px] bg-[#111111]" />
+                    <span className="absolute -right-[3px] top-1/2 h-1.5 w-[2px] -translate-y-1/2 rounded-r-sm bg-[#111111]/80" />
                   </span>
                 </span>
               </div>
@@ -68,8 +68,8 @@ export default function RootLayout({
             <BottomNav />
 
             {/* 홈 인디케이터 바 (데스크톱 프레임 장식용) */}
-            <div className="sticky bottom-0 z-50 hidden justify-center bg-ink-900 pb-1.5 pt-1 sm:flex">
-              <div className="h-1 w-28 rounded-full bg-ink-500" />
+            <div className="sticky bottom-0 z-50 hidden justify-center bg-white pb-1.5 pt-1 sm:flex">
+              <div className="h-1 w-28 rounded-full bg-[#111111]" />
             </div>
           </div>
         </div>
