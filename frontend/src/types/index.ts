@@ -28,6 +28,42 @@ export interface Artwork {
   status: ArtworkStatus;
 }
 
+export interface ArtworkDetailArtist {
+  id: number;
+  name: string;
+  profileImageUrl: string | null;
+}
+
+export interface ArtworkDetailMedia {
+  id: number;
+  mediaType: MediaType;
+  url: string | null;
+  sourceUrl: string | null;
+  sortOrder: number;
+}
+
+export interface ArtworkDetail {
+  id: number;
+  consignorId: number | null;
+  artist: ArtworkDetailArtist | null;
+  title: string;
+  description: string | null;
+  category: ArtworkCategory | null;
+  medium: string | null;
+  widthCm: number | null;
+  heightCm: number | null;
+  depthCm: number | null;
+  productionYear: number | null;
+  startPrice: number;
+  estimatedPrice: number | null;
+  certificateUrl: string | null;
+  imageUrl: string | null;
+  status: ArtworkStatus;
+  media: ArtworkDetailMedia[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 // 목록 API 공통 페이지 응답
 export interface PageResponse<T> {
   content: T[];
