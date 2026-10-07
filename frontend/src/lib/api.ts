@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Artwork, Auction, BidResult, PresignedUploadResponse } from "@/types";
+import type { Artwork, Auction, BidResult, PageResponse, PresignedUploadResponse } from "@/types";
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
