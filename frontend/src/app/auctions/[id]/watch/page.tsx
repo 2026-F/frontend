@@ -62,12 +62,15 @@ export default function WatchStreamPage() {
   }, [auctionId]);
 
   return (
-    <div className="flex max-w-lg flex-col gap-4">
-      <h1 className="text-2xl font-bold">경매 #{auctionId} 라이브</h1>
-      <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
-        <video ref={videoRef} controls playsInline className="h-full w-full" />
+    <div className="container-page py-10">
+      <div className="mx-auto flex max-w-2xl flex-col gap-4">
+        <p className="eyebrow">Live</p>
+        <h1 className="font-display text-2xl font-semibold text-cream">경매 #{auctionId} 라이브</h1>
+        <div className="aspect-video w-full overflow-hidden rounded-2xl border border-ink-700 bg-black">
+          <video ref={videoRef} controls playsInline className="h-full w-full" />
+        </div>
+        <p className="text-sm text-ink-400">{status}</p>
       </div>
-      <p className="text-sm text-gray-500">{status}</p>
     </div>
   );
 }
