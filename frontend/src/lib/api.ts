@@ -1,8 +1,18 @@
 import axios from "axios";
 import type { Artwork, ArtworkDetail, Auction, BidResult, PageResponse, PresignedUploadResponse } from "@/types";
 
+// 서버(Next.js 서버 컴포넌트/SSR)와 브라우저(클라이언트)는 baseURL을 다르게 써야 한다.
+// - 브라우저: NEXT_PUBLIC_API_BASE_URL(보통 빈 값) + next.config.mjs의 rewrites가
+//   /api, /ws 요청을 같은 출처로 받아서 백엔드로 프록시해준다 (Mixed Content 우회).
+// - 서버: rewrites는 "브라우저 -> Vercel 서버" 요청에만 적용되고, 서버 자신이
+//   axios로 직접 나가는 요청에는 적용되지 않는다. 그래서 서버에서는 BACKEND_ORIGIN으로
+//   백엔드를 직접 호출해야 한다 (서버 간 통신이라 http여도 Mixed Content 문제 없음).
+const isServer = typeof window === "undefined";
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  baseURL: isServer
+    ? process.env.BACKEND_ORIGIN || process.env.NEXT_PUBLIC_API_BASE_URL
+    : process.env.NEXT_PUBLIC_API_BASE_URL,
   timeout: 4000,
   headers: {
     "Content-Type": "application/json",
