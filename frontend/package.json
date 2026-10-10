@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@google/model-viewer": "^4.3.1",
+    "amazon-ivs-web-broadcast": "^1.14.0",
     "axios": "^1.7.2",
-    "hls.js": "^1.7.3",
     "next": "14.2.5",
     "react": "18.3.1",
     "react-dom": "18.3.1",

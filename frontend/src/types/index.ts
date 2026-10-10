@@ -109,14 +109,23 @@ export interface Member {
   role: "CONSIGNOR" | "BIDDER" | "ADMIN";
 }
 
+// GET/POST /api/auctions/{auctionId}/stream 응답. AWS IVS Real-Time(스테이지) 기준이라
+// RTMP/HLS 시절의 streamKey·ingestEndpoint·playbackUrl은 없다 — stageArn은 AWS 계정 정보가
+// 담긴 내부 식별자라 응답에서도 빠진다. 대신 스테이지 참여는 StageToken으로 한다.
 export interface Livestream {
   id: number;
   auctionId: number;
-  ivsChannelArn: string | null;
-  streamKey: string | null;
-  ingestEndpoint: string | null;
-  playbackUrl: string | null;
   status: "SCHEDULED" | "LIVE" | "ENDED";
+  startedAt: string | null;
+  endedAt: string | null;
+}
+
+// POST /api/auctions/{auctionId}/stream/tokens 응답.
+// role이 PUBLISH면 위탁자 본인(송출), SUBSCRIBE면 그 외(시청, 비로그인 포함)다.
+export interface StageToken {
+  token: string;
+  role: "PUBLISH" | "SUBSCRIBE";
+  expiresAt: string;
 }
 
 export type MediaType = "PHOTO" | "VIDEO" | "MODEL_3D";
