@@ -1,5 +1,14 @@
 import axios from "axios";
-import type { Artwork, ArtworkDetail, Auction, BidResult, PageResponse, PresignedUploadResponse } from "@/types";
+import type {
+  Artwork,
+  ArtworkDetail,
+  Auction,
+  BidResult,
+  Livestream,
+  PageResponse,
+  PresignedUploadResponse,
+  StageToken,
+} from "@/types";
 
 // 서버(Next.js 서버 컴포넌트/SSR)와 브라우저(클라이언트)는 baseURL을 다르게 써야 한다.
 // - 브라우저: NEXT_PUBLIC_API_BASE_URL(보통 빈 값) + next.config.mjs의 rewrites가
@@ -92,6 +101,37 @@ export function subscribeAuctionEvents(
   };
 
   return () => source.close();
+}
+
+// -----------------------------------------------------------------------
+// 라이브 스트리밍 (AWS IVS Real-Time, 스테이지 기준)
+// 방송 시작/종료는 위탁자만, 스테이지 참여 토큰은 위탁자(PUBLISH)·시청자(SUBSCRIBE, 비로그인 포함)
+// 둘 다 같은 엔드포인트에서 받는다 — 서버가 요청자가 위탁자 본인인지 보고 역할을 정해준다.
+// -----------------------------------------------------------------------
+
+export async function startStream(auctionId: number): Promise<Livestream> {
+  const res = await api.post<Livestream>(`/api/auctions/${auctionId}/stream/start`);
+  return res.data;
+}
+
+export async function endStream(auctionId: number): Promise<void> {
+  await api.post(`/api/auctions/${auctionId}/stream/end`);
+}
+
+export async function fetchStream(auctionId: number): Promise<Livestream> {
+  const res = await api.get<Livestream>(`/api/auctions/${auctionId}/stream`);
+  return res.data;
+}
+
+export async function issueStageToken(auctionId: number): Promise<StageToken> {
+  const res = await api.post<StageToken>(`/api/auctions/${auctionId}/stream/tokens`);
+  return res.data;
+}
+
+/** 경매 라이브 시청 페이지 QR코드(PNG) 주소. api 인스턴스를 거치지 않는 <img src>라 baseURL을 직접 붙인다. */
+export function qrCodeUrl(auctionId: number): string {
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+  return `${base}/api/auctions/${auctionId}/qrcode`;
 }
 
 // -----------------------------------------------------------------------
