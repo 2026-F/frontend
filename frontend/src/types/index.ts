@@ -26,7 +26,7 @@ export interface Artwork {
   certificateUrl?: string | null;
   imageUrl: string | null;
   status: ArtworkStatus;
-  auctionId: number | null;
+  auctionId?: number | null;
 }
 
 export interface ArtworkDetailArtist {
