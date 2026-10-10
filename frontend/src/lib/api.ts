@@ -10,13 +10,9 @@ import type { Artwork, ArtworkDetail, Auction, BidResult, PageResponse, Presigne
 const isServer = typeof window === "undefined";
 
 export const api = axios.create({
-  baseURL: isServer
-    ? process.env.BACKEND_ORIGIN || process.env.NEXT_PUBLIC_API_BASE_URL
-    : process.env.NEXT_PUBLIC_API_BASE_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
   timeout: 4000,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
 });
 
 // 로그인 토큰을 붙이는 인터셉터 (인증 방식이 정해지면 여기서 처리)

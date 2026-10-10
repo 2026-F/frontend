@@ -36,7 +36,10 @@ export async function getLots(): Promise<Lot[]> {
         const mockMatch = getMockLot(artwork.id);
         let auction: Auction;
         try {
-          auction = await fetchAuction(artwork.id);
+          if (!artwork.auctionId) {
+                throw new Error("경매 없음");
+          }
+          auction = await fetchAuction(artwork.auctionId);
         } catch {
           auction = mockMatch?.auction ?? synthesizeAuction(artwork.id, artwork.startPrice);
         }
