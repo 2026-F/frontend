@@ -95,9 +95,9 @@ export default async function HomePage() {
   return (
     <div className="bg-white text-[#171717]">
       <section className="px-[18px] pt-5">
-        <Link href="/auctions" className="flex h-[144px] flex-col justify-center rounded-[10px] bg-[#a8ff00] px-5">
-          <p className="text-[11px] font-medium text-[#5d8e00]">새로운 컬렉터를 위한 첫 경매</p>
-          <p className="mt-2 text-[22px] font-black tracking-[-0.04em]">WEEKLY AUCTION</p>
+        <Link href="/auctions" className="flex h-[144px] flex-col justify-center rounded-[10px] bg-[#171717] px-5">
+          <p className="text-[11px] font-medium text-[#a8ff00]">새로운 컬렉터를 위한 첫 경매</p>
+          <p className="mt-2 text-[22px] font-black tracking-[-0.04em] text-white">WEEKLY AUCTION</p>
         </Link>
 
         <div className="mt-3 grid grid-cols-4 gap-3">

@@ -1,11 +1,11 @@
 import type { ArtworkStatus, AuctionStatus } from "@/types";
 
 const AUCTION_STYLES: Record<AuctionStatus, { label: string; className: string }> = {
-  SCHEDULED: { label: "예정", className: "bg-ink-600 text-ink-100" },
-  PREVIEW: { label: "프리뷰", className: "bg-ink-600 text-cream" },
-  ONGOING: { label: "경매 진행중", className: "bg-accent text-white" },
-  EXTENDED: { label: "연장", className: "bg-red-500 text-white" },
-  CLOSED: { label: "마감", className: "bg-ink-700 text-ink-300" },
+  SCHEDULED: { label: "예정", className: "bg-white text-[#171717]" },
+  PREVIEW: { label: "프리뷰", className: "bg-[#171717] text-white" },
+  ONGOING: { label: "경매 진행중", className: "bg-[#171717] text-[#a8ff00]" },
+  EXTENDED: { label: "연장", className: "bg-[#171717] text-[#a8ff00]" },
+  CLOSED: { label: "마감", className: "bg-white text-[#171717]" },
 };
 
 const ARTWORK_STYLES: Record<ArtworkStatus, { label: string; className: string }> = {

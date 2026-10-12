@@ -48,8 +48,8 @@ export default function StreamManagePage() {
   return (
     <div className="container-page py-10">
       <div className="mx-auto flex max-w-xl flex-col gap-6">
-        <p className="eyebrow">Broadcast</p>
-        <h1 className="font-display text-2xl font-semibold text-cream">경매 #{auctionId} 방송 관리</h1>
+        <p className="w-fit rounded-full bg-[#a8ff00] px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-[#171717]">Broadcast</p>
+        <h1 className="font-display text-2xl font-extrabold text-[#171717]">경매 #{auctionId} 방송 관리</h1>
 
         <div className="flex gap-3">
           <button onClick={handleStart} disabled={loading || stream?.status === "LIVE"} className="btn-primary">
@@ -60,31 +60,31 @@ export default function StreamManagePage() {
           </button>
         </div>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-[#b42318]">{error}</p>}
 
         {stream && stream.status === "LIVE" && (
           <div className="card-surface flex flex-col gap-4 p-5 text-sm">
             <div>
-              <p className="font-semibold text-cream">OBS 등 방송 송출 프로그램에 아래 값을 입력하세요</p>
+              <p className="font-semibold text-[#171717]">OBS 등 방송 송출 프로그램에 아래 값을 입력하세요</p>
 
-              <p className="mt-2 text-ink-400">서버(ingest) 주소</p>
-              <code className="block break-all rounded bg-ink-900 p-2 text-cream">
+              <p className="mt-2 text-[#555651]">서버(ingest) 주소</p>
+              <code className="block break-all rounded bg-[#f3f3f3] p-2 text-[#171717]">
                 rtmps://{stream.ingestEndpoint}:443/app/
               </code>
 
-              <p className="mt-2 text-ink-400">스트림 키</p>
-              <code className="block break-all rounded bg-ink-900 p-2 text-cream">{stream.streamKey}</code>
+              <p className="mt-2 text-[#555651]">스트림 키</p>
+              <code className="block break-all rounded bg-[#f3f3f3] p-2 text-[#171717]">{stream.streamKey}</code>
             </div>
 
             <div>
-              <p className="font-semibold text-cream">참여자 시청 링크</p>
-              <a href={watchUrl} target="_blank" className="break-all text-accent-light underline">
+              <p className="font-semibold text-[#171717]">참여자 시청 링크</p>
+              <a href={watchUrl} target="_blank" className="break-all text-[#171717] underline decoration-[#a8ff00] decoration-2 underline-offset-2">
                 {watchUrl}
               </a>
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(watchUrl)}`}
                 alt="시청 페이지 QR 코드"
-                className="mt-2 rounded bg-cream p-2"
+                className="mt-2 rounded bg-white p-2"
               />
             </div>
           </div>

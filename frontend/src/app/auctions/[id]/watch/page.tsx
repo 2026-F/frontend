@@ -64,12 +64,12 @@ export default function WatchStreamPage() {
   return (
     <div className="container-page py-10">
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
-        <p className="eyebrow">Live</p>
-        <h1 className="font-display text-2xl font-semibold text-cream">경매 #{auctionId} 라이브</h1>
-        <div className="aspect-video w-full overflow-hidden rounded-2xl border border-ink-700 bg-black">
+        <p className="w-fit rounded-full bg-[#a8ff00] px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-[#171717]">Live</p>
+        <h1 className="font-display text-2xl font-extrabold text-[#171717]">경매 #{auctionId} 라이브</h1>
+        <div className="aspect-video w-full overflow-hidden rounded-2xl border border-[#dededb] bg-black">
           <video ref={videoRef} controls playsInline className="h-full w-full" />
         </div>
-        <p className="text-sm text-ink-400">{status}</p>
+        <p className="text-sm text-[#555651]">{status}</p>
       </div>
     </div>
   );
