@@ -10,7 +10,7 @@ export default async function AuctionDetailPage({ params }: { params: { id: stri
 
   return (
     <div className="container-page flex flex-col gap-6 py-6">
-      <div className="aspect-[4/5] w-full overflow-hidden rounded-2xl border border-ink-700 bg-ink-800">
+      <div className="aspect-[4/5] w-full overflow-hidden rounded-2xl border border-[#e8e9e4] bg-[#f7f8f4]">
         <img
           src={lot.images[0] ?? lot.artwork.imageUrl ?? ""}
           alt={lot.artwork.title}
@@ -20,7 +20,7 @@ export default async function AuctionDetailPage({ params }: { params: { id: stri
 
       <BidPanel lot={lot} />
 
-      <div className="flex gap-2 border-t border-ink-700 pt-5">
+      <div className="flex gap-2 border-t border-[#e8e9e4] pt-5">
         <Link href={`/artworks/${lot.artwork.id}?auctionId=${lot.auction.id}`} className="btn-outline flex-1">
           작품 상세
         </Link>

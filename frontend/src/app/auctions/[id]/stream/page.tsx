@@ -100,10 +100,10 @@ export default function StreamManagePage() {
   return (
     <div className="container-page py-10">
       <div className="mx-auto flex max-w-xl flex-col gap-6">
-        <p className="eyebrow">Broadcast</p>
-        <h1 className="font-display text-2xl font-semibold text-cream">경매 #{auctionId} 방송 관리</h1>
+        <p className="eyebrow text-[#566e22]">Broadcast</p>
+        <h1 className="font-display text-2xl font-semibold text-[#171717]">경매 #{auctionId} 방송 관리</h1>
 
-        <div className="aspect-video w-full overflow-hidden rounded-2xl border border-ink-700 bg-black">
+        <div className="aspect-video w-full overflow-hidden rounded-2xl border border-[#e8e9e4] bg-black">
           <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
         </div>
 
@@ -116,16 +116,16 @@ export default function StreamManagePage() {
           </button>
         </div>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-[#e0443e]">{error}</p>}
 
         {stream && stream.status === "LIVE" && (
           <div className="card-surface flex flex-col gap-4 p-5 text-sm">
             <div>
-              <p className="font-semibold text-cream">참여자 시청 링크</p>
-              <a href={watchUrl} target="_blank" className="break-all text-accent-light underline">
+              <p className="font-semibold text-[#171717]">참여자 시청 링크</p>
+              <a href={watchUrl} target="_blank" className="break-all text-[#566e22] underline">
                 {watchUrl}
               </a>
-              <img src={qrCodeUrl(auctionId)} alt="시청 페이지 QR 코드" className="mt-2 rounded bg-cream p-2" width={180} height={180} />
+              <img src={qrCodeUrl(auctionId)} alt="시청 페이지 QR 코드" className="mt-2 rounded bg-white p-2" width={180} height={180} />
             </div>
           </div>
         )}
