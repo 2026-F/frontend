@@ -39,12 +39,12 @@ export default function MyPage() {
         className="mt-9 grid grid-cols-3 rounded-[18px] bg-[#f7f8f4] py-5 text-center"
       >
         {STATS.map((stat) => (
-          <div key={stat.label}>
+          <button key={stat.label} type="button" disabled aria-label={`${stat.label} ${stat.value}건, 상세 화면 준비 중`} className="flex flex-col items-center justify-center text-center disabled:cursor-default">
             <p className="text-[13px] font-semibold text-[#73756f]">{stat.label}</p>
             <p className="mt-3 text-[25px] font-extrabold leading-none tracking-[-0.05em]">
               {stat.value}
             </p>
-          </div>
+          </button>
         ))}
       </section>
 
