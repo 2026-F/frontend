@@ -7,7 +7,7 @@ import AuctionCard from "@/components/AuctionCard";
 const FILTERS: { key: string; label: string; match: (s: AuctionStatus) => boolean }[] = [
   { key: "all", label: "전체", match: () => true },
   { key: "ongoing", label: "진행중", match: (s) => s === "ONGOING" || s === "EXTENDED" },
-  { key: "preview", label: "프리뷰/예정", match: (s) => s === "PREVIEW" || s === "SCHEDULED" },
+  { key: "preview", label: "입찰 전", match: (s) => s === "PREVIEW" || s === "SCHEDULED" },
   { key: "closed", label: "마감", match: (s) => s === "CLOSED" },
 ];
 
