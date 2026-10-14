@@ -1,211 +1,189 @@
-import type { Lot } from "@/types";
+import type { ArtworkCategory, ArtworkDetail, ArtworkStatus, AuctionStatus, Lot } from "@/types";
+import { CATEGORY_LABELS } from "@/lib/categories";
 
-const HOUR = 60 * 60 * 1000;
-const DAY = 24 * HOUR;
-const now = () => Date.now();
+const MINUTE = 60 * 1000;
+const DAY = 24 * 60 * MINUTE;
+const baseTime = Date.now();
+const at = (offset: number) => new Date(baseTime + offset).toISOString();
 
-// 실제 API(GET /api/artworks, GET /api/auctions/{id}/current-price 등)가 데이터를
-// 채우기 전까지 화면을 완성해두기 위한 목데이터입니다. PoC 단순화를 위해
-// artwork.id === auction.id === auction.artworkId 로 맞춰뒀습니다.
-export const MOCK_LOTS: Lot[] = [
+export type MockSaleType = "WEEKLY" | "LIVE";
+
+type MockRecord = {
+  id: number;
+  saleType: MockSaleType;
+  artistName: string;
+  title: string;
+  imageUrl: string;
+  sourcePageUrl: string;
+  category: ArtworkCategory;
+  medium: string | null;
+  widthCm: number | null;
+  heightCm: number | null;
+  productionYear: number;
+  artworkStatus: ArtworkStatus;
+  auctionStatus: AuctionStatus;
+  startPrice: number;
+  estimatedPrice: number | null;
+  currentPrice: number;
+  minBidUnit: number;
+  previewStart: string;
+  previewEnd: string;
+  auctionEndAt: string;
+  bidCount: number;
+  viewerCount: number;
+};
+
+// 작품명·작가·제작연도와 확인된 재료·크기는 출처를 따릅니다.
+// 가격·입찰 수·시각·경매 상태와 라이브 편성은 화면 시연용 가상 값입니다.
+// 여섯 작품 모두 평면 작품이므로 조각·공예·사진으로 임의 분류하지 않습니다.
+// 혼합 재료를 사용한 평면 작품은 화면의 네 가지 분류 중 회화에 포함합니다.
+const RECORDS: MockRecord[] = [
   {
-    artwork: {
-      id: 1,
-      consignorId: 101,
-      title: "고요한 파동",
-      startPrice: 3_000_000,
-      estimatedPrice: 6_000_000,
-      certificateUrl: null,
-      imageUrl: "https://picsum.photos/seed/artbid-1/900/1100",
-      status: "IN_AUCTION",
-    },
-    auction: {
-      id: 1,
-      artworkId: 1,
-      startPrice: 3_000_000,
-      currentPrice: 5_200_000,
-      minBidUnit: 100_000,
-      previewStart: new Date(now() - 3 * DAY).toISOString(),
-      previewEnd: new Date(now() - 1 * HOUR).toISOString(),
-      auctionEndAt: new Date(now() + 2 * HOUR + 14 * 60 * 1000).toISOString(),
-      status: "ONGOING",
-    },
-    artistName: "김서연",
-    category: "회화 · 캔버스에 유채",
-    description:
-      "빛이 수면 위로 흩어지는 순간을 겹겹의 유채 붓질로 쌓아올린 작품입니다. 3일간의 프리뷰 동안 다수의 사전 관심 등록을 받았습니다.",
-    images: [
-      "https://picsum.photos/seed/artbid-1/900/1100",
-      "https://picsum.photos/seed/artbid-1b/900/1100",
-      "https://picsum.photos/seed/artbid-1c/900/1100",
-    ],
-    bidCount: 18,
-    viewerCount: 142,
-    isMock: true,
+    id: 1, saleType: "WEEKLY", artistName: "유제이", title: "파랑새",
+    imageUrl: "/artworks/uj-bluebird-2025.jpg",
+    sourcePageUrl: "https://www.opengallery.co.kr/artwork/A2827-0008/",
+    category: "PAINTING", medium: "캔버스에 아크릴", widthCm: 73, heightCm: 61,
+    productionYear: 2025,
+    artworkStatus: "IN_AUCTION", auctionStatus: "ONGOING",
+    startPrice: 400_000, estimatedPrice: 1_000_000, currentPrice: 600_000, minBidUnit: 50_000,
+    previewStart: at(-3 * DAY), previewEnd: at(-DAY), auctionEndAt: at(6 * DAY),
+    bidCount: 4, viewerCount: 28,
   },
   {
-    artwork: {
-      id: 2,
-      consignorId: 102,
-      title: "밤의 정원",
-      startPrice: 1_500_000,
-      estimatedPrice: 3_200_000,
-      certificateUrl: null,
-      imageUrl: "https://picsum.photos/seed/artbid-2/900/1100",
-      status: "IN_AUCTION",
-    },
-    auction: {
-      id: 2,
-      artworkId: 2,
-      startPrice: 1_500_000,
-      currentPrice: 2_980_000,
-      minBidUnit: 50_000,
-      previewStart: new Date(now() - 2 * DAY).toISOString(),
-      previewEnd: new Date(now() - 2 * HOUR).toISOString(),
-      auctionEndAt: new Date(now() + 22 * 1000).toISOString(),
-      status: "EXTENDED",
-    },
-    artistName: "이도현",
-    category: "사진 · 아카이벌 피그먼트 프린트",
-    description:
-      "마감 30초 전 입찰이 들어와 안티 스나이핑 규칙으로 마감이 자동 연장된 상태입니다. 지금 입찰하면 마감이 다시 30초 늘어납니다.",
-    images: [
-      "https://picsum.photos/seed/artbid-2/900/1100",
-      "https://picsum.photos/seed/artbid-2b/900/1100",
-    ],
-    bidCount: 31,
-    viewerCount: 266,
-    isMock: true,
+    id: 2, saleType: "WEEKLY", artistName: "이현영", title: "관조_바람소나타3",
+    imageUrl: "/artworks/lee-hyunyoung-wind-sonata-3-2025.webp",
+    sourcePageUrl: "https://www.seoulauction.com/auction/online/1060/43",
+    category: "PAINTING", medium: null, widthCm: null, heightCm: null,
+    productionYear: 2025,
+    artworkStatus: "PREVIEW", auctionStatus: "PREVIEW",
+    startPrice: 400_000, estimatedPrice: null, currentPrice: 400_000, minBidUnit: 50_000,
+    previewStart: at(-DAY), previewEnd: at(DAY), auctionEndAt: at(8 * DAY),
+    bidCount: 0, viewerCount: 12,
   },
   {
-    artwork: {
-      id: 3,
-      consignorId: 103,
-      title: "부유하는 기억",
-      startPrice: 4_500_000,
-      estimatedPrice: 8_000_000,
-      certificateUrl: null,
-      imageUrl: "https://picsum.photos/seed/artbid-3/900/1100",
-      status: "PREVIEW",
-    },
-    auction: {
-      id: 3,
-      artworkId: 3,
-      startPrice: 4_500_000,
-      currentPrice: 4_500_000,
-      minBidUnit: 200_000,
-      previewStart: new Date(now() - 6 * HOUR).toISOString(),
-      previewEnd: new Date(now() + 2 * DAY).toISOString(),
-      auctionEndAt: new Date(now() + 2 * DAY + 3 * HOUR).toISOString(),
-      status: "PREVIEW",
-    },
-    artistName: "박지민",
-    category: "조각 · 브론즈",
-    description: "프리뷰 기간 동안 3D 뷰어로 360도 감상할 수 있습니다. 경매는 프리뷰 종료 후 시작됩니다.",
-    images: [
-      "https://picsum.photos/seed/artbid-3/900/1100",
-      "https://picsum.photos/seed/artbid-3b/900/1100",
-    ],
-    bidCount: 0,
-    viewerCount: 58,
-    isMock: true,
+    id: 3, saleType: "WEEKLY", artistName: "정국영", title: "Chaotic Signal (The Rhythm of Life)",
+    imageUrl: "/artworks/jeong-kookyoung-chaotic-signal-2024.webp",
+    sourcePageUrl: "https://findartinfo.com/artwork/chaotic-signal-the-rhythm-of-life/B8C291CEF09047949DA0E925FE83227F",
+    category: "PAINTING", medium: "캔버스에 한지 혼합 재료", widthCm: 60, heightCm: 60,
+    productionYear: 2024,
+    artworkStatus: "PREVIEW", auctionStatus: "SCHEDULED",
+    startPrice: 900_000, estimatedPrice: 1_800_000, currentPrice: 900_000, minBidUnit: 100_000,
+    previewStart: at(DAY), previewEnd: at(2 * DAY), auctionEndAt: at(9 * DAY),
+    bidCount: 0, viewerCount: 0,
   },
   {
-    artwork: {
-      id: 4,
-      consignorId: 104,
-      title: "유리의 결",
-      startPrice: 2_200_000,
-      estimatedPrice: 4_000_000,
-      certificateUrl: null,
-      imageUrl: "https://picsum.photos/seed/artbid-4/900/1100",
-      status: "PREVIEW",
-    },
-    auction: {
-      id: 4,
-      artworkId: 4,
-      startPrice: 2_200_000,
-      currentPrice: 2_200_000,
-      minBidUnit: 100_000,
-      previewStart: new Date(now() - 1 * DAY).toISOString(),
-      previewEnd: new Date(now() + 5 * HOUR).toISOString(),
-      auctionEndAt: new Date(now() + 8 * HOUR).toISOString(),
-      status: "SCHEDULED",
-    },
-    artistName: "한소이",
-    category: "미디어아트 · 3D 모델",
-    description:
-      "3D 뷰어 데모용 작품입니다. 실물 스캔 데이터 등록 전까지는 샘플 3D 모델(duck.glb)로 뷰어 동작을 확인할 수 있습니다.",
-    images: [
-      "https://picsum.photos/seed/artbid-4/900/1100",
-      "https://picsum.photos/seed/artbid-4b/900/1100",
-    ],
-    bidCount: 0,
-    viewerCount: 21,
-    isMock: true,
+    id: 4, saleType: "LIVE", artistName: "임수영", title: "대박이의 화려한 외출-몽유대박도",
+    imageUrl: "/artworks/lim-sooyoung-daebak-dream-2025.webp",
+    sourcePageUrl: "https://findartinfo.com/artwork/daebaks-splendid-outing-dream-journey-of-daebak/F5AC7DC242974F10B07A3FB64973EE8A",
+    category: "PAINTING", medium: "캔버스에 아크릴", widthCm: 40, heightCm: 40,
+    productionYear: 2025,
+    artworkStatus: "SOLD", auctionStatus: "CLOSED",
+    startPrice: 1_200_000, estimatedPrice: 2_000_000, currentPrice: 1_500_000, minBidUnit: 100_000,
+    previewStart: at(-2 * DAY), previewEnd: at(-DAY), auctionEndAt: at(-10 * MINUTE),
+    bidCount: 3, viewerCount: 0,
   },
   {
-    artwork: {
-      id: 5,
-      consignorId: 105,
-      title: "정적 속으로",
-      startPrice: 1_800_000,
-      estimatedPrice: 3_000_000,
-      certificateUrl: null,
-      imageUrl: "https://picsum.photos/seed/artbid-5/900/1100",
-      status: "SOLD",
-    },
-    auction: {
-      id: 5,
-      artworkId: 5,
-      startPrice: 1_800_000,
-      currentPrice: 3_450_000,
-      minBidUnit: 100_000,
-      previewStart: new Date(now() - 7 * DAY).toISOString(),
-      previewEnd: new Date(now() - 5 * DAY).toISOString(),
-      auctionEndAt: new Date(now() - 4 * DAY).toISOString(),
-      status: "CLOSED",
-    },
-    artistName: "최윤아",
-    category: "판화 · 목판",
-    description: "총 24건의 입찰 끝에 시작가 대비 91% 높은 가격에 낙찰된 작품입니다.",
-    images: ["https://picsum.photos/seed/artbid-5/900/1100"],
-    bidCount: 24,
-    viewerCount: 0,
-    isMock: true,
+    id: 5, saleType: "LIVE", artistName: "송유미", title: "인드라망 25-16",
+    imageUrl: "/artworks/song-yumi-indras-net-25-16-2025.webp",
+    sourcePageUrl: "https://findartinfo.com/artwork/indras-net-25-16/065972EA40404B2F96EC9F98FC69208A",
+    category: "PAINTING", medium: "한지에 색연필과 아크릴", widthCm: 34.9, heightCm: 28.1,
+    productionYear: 2025,
+    artworkStatus: "IN_AUCTION", auctionStatus: "ONGOING",
+    startPrice: 350_000, estimatedPrice: 800_000, currentPrice: 450_000, minBidUnit: 50_000,
+    previewStart: at(-2 * DAY), previewEnd: at(-30 * MINUTE), auctionEndAt: at(10 * MINUTE),
+    bidCount: 2, viewerCount: 128,
   },
   {
-    artwork: {
-      id: 6,
-      consignorId: 106,
-      title: "붉은 지평선",
-      startPrice: 5_000_000,
-      estimatedPrice: 9_500_000,
-      certificateUrl: null,
-      imageUrl: "https://picsum.photos/seed/artbid-6/900/1100",
-      status: "SOLD",
-    },
-    auction: {
-      id: 6,
-      artworkId: 6,
-      startPrice: 5_000_000,
-      currentPrice: 9_800_000,
-      minBidUnit: 200_000,
-      previewStart: new Date(now() - 10 * DAY).toISOString(),
-      previewEnd: new Date(now() - 8 * DAY).toISOString(),
-      auctionEndAt: new Date(now() - 7 * DAY).toISOString(),
-      status: "CLOSED",
-    },
-    artistName: "정하늘",
-    category: "회화 · 캔버스에 아크릴",
-    description: "추정가 상단을 넘어선 가격에 낙찰된 이번 시즌 최고가 작품입니다.",
-    images: ["https://picsum.photos/seed/artbid-6/900/1100"],
-    bidCount: 37,
-    viewerCount: 0,
-    isMock: true,
+    id: 6, saleType: "LIVE", artistName: "전동민", title: "달빛 아래 한남동",
+    imageUrl: "/artworks/jeon-dongmin-hannam-moonlight-2019.jpg",
+    sourcePageUrl: "https://www.namdogallery.or.kr/nd/ndgallery/artistworks.html?awidx=5591",
+    category: "PAINTING", medium: "한지에 채색", widthCm: 80, heightCm: 117,
+    productionYear: 2019,
+    artworkStatus: "PREVIEW", auctionStatus: "PREVIEW",
+    startPrice: 700_000, estimatedPrice: 1_500_000, currentPrice: 700_000, minBidUnit: 50_000,
+    previewStart: at(-2 * DAY), previewEnd: at(10 * MINUTE), auctionEndAt: at(25 * MINUTE),
+    bidCount: 0, viewerCount: 0,
   },
 ];
 
-export function getMockLot(id: number): Lot | undefined {
+export const MOCK_ARTWORK_DETAILS: ArtworkDetail[] = RECORDS.map((record) => ({
+  id: record.id,
+  consignorId: 100 + record.id,
+  artist: { id: 200 + record.id, name: record.artistName, profileImageUrl: null },
+  title: record.title,
+  description: null,
+  category: record.category,
+  medium: record.medium,
+  widthCm: record.widthCm,
+  heightCm: record.heightCm,
+  depthCm: null,
+  productionYear: record.productionYear,
+  startPrice: record.startPrice,
+  estimatedPrice: record.estimatedPrice,
+  certificateUrl: null,
+  imageUrl: record.imageUrl,
+  status: record.artworkStatus,
+  media: [{ id: record.id, mediaType: "PHOTO", url: record.imageUrl, sourceUrl: null, sortOrder: 0 }],
+  createdAt: at(-7 * DAY),
+  updatedAt: at(-DAY),
+}));
+
+export type MockLot = Lot & { saleType: MockSaleType; sourcePageUrl: string };
+
+export const MOCK_LOTS: MockLot[] = RECORDS.map((record) => ({
+  artwork: {
+    id: record.id,
+    consignorId: 100 + record.id,
+    artistId: 200 + record.id,
+    artistName: record.artistName,
+    category: record.category,
+    title: record.title,
+    startPrice: record.startPrice,
+    estimatedPrice: record.estimatedPrice,
+    certificateUrl: null,
+    imageUrl: record.imageUrl,
+    status: record.artworkStatus,
+    auctionId: record.id,
+  },
+  auction: {
+    id: record.id,
+    artworkId: record.id,
+    startPrice: record.startPrice,
+    currentPrice: record.currentPrice,
+    minBidUnit: record.minBidUnit,
+    previewStart: record.previewStart,
+    previewEnd: record.previewEnd,
+    auctionEndAt: record.auctionEndAt,
+    status: record.auctionStatus,
+  },
+  artistName: record.artistName,
+  category: [CATEGORY_LABELS[record.category], record.medium].filter(Boolean).join(" · "),
+  images: [record.imageUrl],
+  bidCount: record.bidCount,
+  viewerCount: record.viewerCount,
+  isMock: true,
+  saleType: record.saleType,
+  sourcePageUrl: record.sourcePageUrl,
+}));
+
+export const MOCK_WEEKLY_LOTS = MOCK_LOTS.filter((lot) => lot.saleType === "WEEKLY");
+export const MOCK_LIVE_LOTS = MOCK_LOTS.filter((lot) => lot.saleType === "LIVE");
+
+// 방송 단위 모델은 아직 백엔드에 없습니다. 편성과 순서는 프런트 데모용입니다.
+export const MOCK_LIVE_EVENT = {
+  id: 1,
+  title: "2026 가을 컬렉션",
+  status: "LIVE" as const,
+  startedAt: at(-15 * MINUTE),
+  lotIds: [4, 5, 6],
+  currentLotId: 5,
+  viewerCount: 128,
+};
+
+export function getMockLot(id: number): MockLot | undefined {
   return MOCK_LOTS.find((lot) => lot.artwork.id === id);
+}
+
+export function getMockArtworkDetail(id: number): ArtworkDetail | undefined {
+  return MOCK_ARTWORK_DETAILS.find((artwork) => artwork.id === id);
 }

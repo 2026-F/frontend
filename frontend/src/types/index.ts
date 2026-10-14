@@ -165,7 +165,6 @@ export interface Lot {
   auction: Auction;
   artistName: string;
   category: string;
-  description: string;
   images: string[];
   bidCount: number;
   viewerCount: number;
