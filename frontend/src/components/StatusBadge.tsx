@@ -1,18 +1,18 @@
 import type { ArtworkStatus, AuctionStatus } from "@/types";
 
 const AUCTION_STYLES: Record<AuctionStatus, { label: string; className: string }> = {
-  SCHEDULED: { label: "예정", className: "bg-ink-600 text-ink-100" },
-  PREVIEW: { label: "프리뷰", className: "bg-ink-600 text-cream" },
-  ONGOING: { label: "경매 진행중", className: "bg-accent text-white" },
-  EXTENDED: { label: "연장", className: "bg-red-500 text-white" },
-  CLOSED: { label: "마감", className: "bg-ink-700 text-ink-300" },
+  SCHEDULED: { label: "예정", className: "bg-[#b8f53d] text-[#171717]" },
+  PREVIEW: { label: "프리뷰", className: "bg-[#b8f53d] text-[#171717]" },
+  ONGOING: { label: "진행중", className: "bg-[#ff453e] text-white" },
+  EXTENDED: { label: "진행중", className: "bg-[#ff453e] text-white" },
+  CLOSED: { label: "마감", className: "bg-[#e8e9e4] text-[#73756f]" },
 };
 
 const ARTWORK_STYLES: Record<ArtworkStatus, { label: string; className: string }> = {
-  PENDING_REVIEW: { label: "심사중", className: "bg-ink-600 text-ink-100" },
-  PREVIEW: { label: "프리뷰", className: "bg-ink-600 text-cream" },
-  IN_AUCTION: { label: "경매 진행중", className: "bg-accent text-white" },
-  SOLD: { label: "낙찰", className: "bg-ink-700 text-ink-300" },
+  PENDING_REVIEW: { label: "심사중", className: "bg-[#e8e9e4] text-[#454641]" },
+  PREVIEW: { label: "프리뷰", className: "bg-[#b8f53d] text-[#171717]" },
+  IN_AUCTION: { label: "진행중", className: "bg-[#ff453e] text-white" },
+  SOLD: { label: "낙찰", className: "bg-[#e8e9e4] text-[#73756f]" },
   REJECTED: { label: "반려", className: "bg-red-900 text-red-200" },
 };
 

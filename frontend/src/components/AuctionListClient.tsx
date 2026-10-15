@@ -29,8 +29,8 @@ export default function AuctionListClient({ lots }: { lots: Lot[] }) {
             onClick={() => setFilter(f.key)}
             className={`rounded-full border px-3 py-1.5 text-xs transition ${
               filter === f.key
-                ? "border-accent bg-accent font-semibold text-white"
-                : "border-ink-600 text-ink-200 hover:border-accent hover:text-accent-light"
+                ? "border-[#171717] bg-[#171717] font-semibold text-[#b8f53d]"
+                : "border-[#d9dcd2] text-[#454641] hover:border-[#8dbb30] hover:text-[#566e22]"
             }`}
           >
             {f.label}
@@ -39,7 +39,7 @@ export default function AuctionListClient({ lots }: { lots: Lot[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-16 text-center text-sm text-ink-400">해당하는 경매가 없습니다.</p>
+        <p className="py-16 text-center text-sm text-[#73756f]">해당하는 경매가 없습니다.</p>
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {filtered.map((lot) => (
