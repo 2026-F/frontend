@@ -9,13 +9,20 @@ export type CameraStatus = "idle" | "starting" | "live" | "error";
  *
  * 주의: 브라우저는 보안상 HTTPS 또는 localhost에서만 카메라를 열어줍니다.
  * 폰에서 http://192.168.x.x:3000 처럼 접속하면 카메라가 열리지 않습니다.
+ *
+ * @param enabled false면 카메라를 켜지 않음 (앨범 사진 모드)
  */
-export function useCameraStream() {
+export function useCameraStream(enabled = true) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [status, setStatus] = useState<CameraStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setStatus("idle");
+      return;
+    }
+
     let stream: MediaStream | null = null;
     let cancelled = false;
 
@@ -58,7 +65,7 @@ export function useCameraStream() {
       cancelled = true;
       stream?.getTracks().forEach((track) => track.stop());
     };
-  }, []);
+  }, [enabled]);
 
   return { videoRef, status, error };
 }
