@@ -2,6 +2,7 @@ import axios from "axios";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchArtworkDetail, fetchAuction } from "@/lib/api";
+import { getMockArtworkDetail, getMockLot } from "@/lib/mock";
 import { formatWon } from "@/lib/format";
 import type { ArtworkDetail, Auction } from "@/types";
 
@@ -19,7 +20,8 @@ async function getAuctionContext(value: string | undefined, artworkId: number): 
     const auction = await fetchAuction(auctionId);
     return auction.artworkId === artworkId ? auction : null;
   } catch {
-    return null;
+    const mock = getMockLot(artworkId)?.auction;
+    return mock?.id === auctionId ? mock : null;
   }
 }
 
@@ -33,7 +35,7 @@ function dimensionsOf(artwork: ArtworkDetail) {
 function auctionState(auction: Auction) {
   if (auction.status === "ONGOING" || auction.status === "EXTENDED") return "진행 중";
   if (auction.status === "CLOSED") return "종료";
-  return "프리뷰";
+  return auction.status === "SCHEDULED" ? "예정" : "프리뷰";
 }
 
 export default async function ArtworkDetailPage({ params, searchParams }: ArtworkDetailPageProps) {
@@ -44,8 +46,12 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
   try {
     artwork = await fetchArtworkDetail(artworkId);
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) notFound();
-    throw error;
+    const mock = getMockArtworkDetail(artworkId);
+    if (mock) artwork = mock;
+    else {
+      if (axios.isAxiosError(error) && error.response?.status === 404) notFound();
+      throw error;
+    }
   }
 
   const auction = await getAuctionContext(searchParams?.auctionId, artwork.id);
@@ -61,7 +67,8 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
   const primaryImage = photos[0]?.url ?? artwork.imageUrl;
   const dimensions = dimensionsOf(artwork);
   const currentPrice = auction?.currentPrice ?? artwork.startPrice;
-  const nextBid = auction ? auction.currentPrice + auction.minBidUnit : null;
+  const canBid = auction?.status === "ONGOING" || auction?.status === "EXTENDED";
+  const nextBid = canBid ? auction.currentPrice + auction.minBidUnit : null;
 
   return (
     <div className="min-h-full bg-white text-[#111111]">
@@ -73,7 +80,7 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
             <span className="sr-only">등록된 대표 이미지가 없습니다.</span>
           )}
           <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#42433f] shadow-sm">
-            {auction ? "경매 프리뷰" : "작품 프리뷰"}
+            {auction ? auctionState(auction) : "작품 프리뷰"}
           </span>
         </div>
 
@@ -97,7 +104,7 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
 
         <div className="my-4 h-px bg-[#efefeb]" />
 
-        <p className="text-[10px] font-medium text-[#74756f]">현재 경매가</p>
+        <p className="text-[10px] font-medium text-[#74756f]">{auction?.status === "CLOSED" ? "최종가" : canBid ? "현재 경매가" : "시작가"}</p>
         <p className="mt-1 text-[25px] font-extrabold leading-none tracking-[-0.035em]">{formatWon(currentPrice)}</p>
         {nextBid && <p className="mt-2 text-[10px] font-semibold text-[#ff4e44]">다음 예상가 {formatWon(nextBid)}</p>}
 
@@ -105,7 +112,7 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
           <dl className="mt-4 space-y-2 rounded-[8px] bg-[#f6f7f2] px-4 py-3 text-[10px]">
             <div className="flex items-center justify-between gap-4">
               <dt className="text-[#74756f]">추정가</dt>
-              <dd className="font-semibold text-[#272824]">{formatWon(artwork.startPrice)} — {formatWon(artwork.estimatedPrice)}</dd>
+              <dd className="font-semibold text-[#272824]">{artwork.estimatedPrice == null ? "정보 없음" : `${formatWon(artwork.startPrice)} — ${formatWon(artwork.estimatedPrice)}`}</dd>
             </div>
             <div className="flex items-center justify-between gap-4">
               <dt className="text-[#74756f]">구매 수수료</dt>
@@ -118,7 +125,7 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
           </dl>
         )}
 
-        {auction && (
+        {canBid && auction && (
           <Link href={`/auctions/${auction.id}`} className="mt-4 flex h-12 w-full items-center justify-center rounded-[7px] bg-[#a8ff00] text-[13px] font-extrabold text-[#111111] transition active:scale-[0.99]">
             {formatWon(nextBid ?? currentPrice)} 입찰하기
           </Link>
