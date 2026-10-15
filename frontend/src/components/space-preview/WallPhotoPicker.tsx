@@ -11,12 +11,11 @@ interface WallPhotoPickerProps {
 }
 
 /**
- * 작품을 걸어볼 벽(공간) 사진을 가져오는 컴포넌트
- * - 카메라로 찍기: 모바일에서 후면 카메라가 바로 열림 (capture="environment")
- * - 앨범에서 선택: 이미 찍어둔 사진 사용 (PC에서도 동작)
+ * 앨범에서 벽(공간) 사진을 고르는 컴포넌트
+ * 메인 흐름은 실시간 카메라 위 배치이고, 이 컴포넌트는 카메라를 쓸 수 없을 때
+ * (권한 거부 · PC · HTTPS가 아닌 환경) 이미 찍어둔 사진으로 대신 배치하기 위한 대체 수단
  */
 export default function WallPhotoPicker({ onSelect }: WallPhotoPickerProps) {
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [photo, setPhoto] = useState<WallPhoto | null>(null);
@@ -51,14 +50,6 @@ export default function WallPhotoPicker({ onSelect }: WallPhotoPickerProps) {
   return (
     <div className="flex flex-col gap-3">
       <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFileChange}
-      />
-      <input
         ref={galleryInputRef}
         type="file"
         accept="image/*"
@@ -71,9 +62,9 @@ export default function WallPhotoPicker({ onSelect }: WallPhotoPickerProps) {
           <img src={photo.url} alt="선택한 벽 사진" className="h-full w-full object-cover" />
         ) : (
           <p className="px-6 text-center text-[13px] leading-relaxed text-[#858680]">
-            작품을 걸어볼 벽을 정면에서 찍어주세요.
+            작품을 걸어볼 벽 사진을 골라주세요.
             <br />
-            밝은 곳에서 찍을수록 결과가 자연스러워요.
+            정면에서 밝게 찍은 사진일수록 결과가 자연스러워요.
           </p>
         )}
         {isProcessing && (
@@ -89,24 +80,14 @@ export default function WallPhotoPicker({ onSelect }: WallPhotoPickerProps) {
         </p>
       )}
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          disabled={isProcessing}
-          onClick={() => cameraInputRef.current?.click()}
-          className="flex-1 rounded-full bg-[#111111] px-4 py-3 text-[13px] font-semibold text-white transition disabled:opacity-40"
-        >
-          {photo ? "다시 찍기" : "카메라로 찍기"}
-        </button>
-        <button
-          type="button"
-          disabled={isProcessing}
-          onClick={() => galleryInputRef.current?.click()}
-          className="flex-1 rounded-full border border-[#d9dcd2] bg-white px-4 py-3 text-[13px] font-semibold text-[#111111] transition disabled:opacity-40"
-        >
-          앨범에서 선택
-        </button>
-      </div>
+      <button
+        type="button"
+        disabled={isProcessing}
+        onClick={() => galleryInputRef.current?.click()}
+        className="w-full rounded-full bg-[#111111] px-4 py-3 text-[13px] font-semibold text-white transition disabled:opacity-40"
+      >
+        {photo ? "다른 사진 선택" : "앨범에서 선택"}
+      </button>
     </div>
   );
 }
