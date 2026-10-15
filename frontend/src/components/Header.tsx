@@ -27,9 +27,19 @@ export default function Header() {
     <header className="sticky top-0 z-40 border-b border-[#e8e8e5] bg-white/95 backdrop-blur">
       <div className="flex h-[58px] items-center justify-between px-[18px] text-[#171717]">
         <Link href="/" className="text-[25px] font-extrabold tracking-[-0.055em]">ArtBid</Link>
-        <div className="flex items-center gap-6 text-[13px] font-medium">
-          <Link href="/auctions">검색</Link>
-          <Link href="/mypage">알림</Link>
+        <div className="flex items-center gap-3">
+          <Link href="/search" aria-label="검색" className="grid h-9 w-9 place-items-center">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+              <circle cx="10.8" cy="10.8" r="6.3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+              <path d="m15.5 15.5 4.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </Link>
+          <Link href="/notifications" aria-label="알림" className="grid h-9 w-9 place-items-center">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+              <path d="M18 8.5a6 6 0 0 0-12 0c0 7-2.5 7-2.5 8.5h17C20.5 15.5 18 15.5 18 8.5Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+              <path d="M10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            </svg>
+          </Link>
         </div>
       </div>
     </header>

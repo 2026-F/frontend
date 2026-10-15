@@ -28,7 +28,6 @@ function randomBidderId() {
 
 export default function BidPanel({ lot }: { lot: Lot }) {
   const [auction, setAuction] = useState(lot.auction);
-  const [live, setLive] = useState(false);
   const [bidderId, setBidderId] = useState(randomBidderId());
   const [amount, setAmount] = useState(lot.auction.currentPrice + lot.auction.minBidUnit);
   const [submitting, setSubmitting] = useState(false);
@@ -69,7 +68,6 @@ export default function BidPanel({ lot }: { lot: Lot }) {
     const unsubscribe = subscribeAuctionEvents(
       auction.id,
       (data) => {
-        setLive(true);
         if (data && typeof data === "object") {
           const payload = data as AuctionEventPayload;
           if (typeof payload.currentPrice === "number") {
@@ -91,7 +89,6 @@ export default function BidPanel({ lot }: { lot: Lot }) {
           }
         }
       },
-      () => setLive(false),
     );
 
     // 백엔드가 아직 SSE로 입찰 이벤트를 브로드캐스트하지 않는 경우(README TODO)를 대비해
@@ -159,46 +156,41 @@ export default function BidPanel({ lot }: { lot: Lot }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <div className="flex items-center gap-2">
-          <AuctionStatusBadge status={auction.status} />
-          <span className={`text-xs ${live ? "text-emerald-400" : "text-ink-400"}`}>
-            {live ? "● 실시간 연결됨" : "○ 폴링으로 갱신 중"}
-          </span>
-        </div>
-        <h1 className="mt-3 font-display text-3xl font-semibold text-cream">{lot.artwork.title}</h1>
-        <p className="mt-1 text-ink-300">
+        <AuctionStatusBadge status={auction.status} />
+        <h1 className="mt-3 font-display text-3xl font-semibold text-[#171717]">{lot.artwork.title}</h1>
+        <p className="mt-1 text-[#73756f]">
           {lot.artistName} · {lot.category}
         </p>
       </div>
 
-      <div className="card-surface flex flex-col gap-4 p-6">
+      <div className="flex flex-col gap-4 rounded-xl border border-[#171717] bg-[#171717] p-6 text-white">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs text-ink-400">현재가</p>
-            <p className="font-display text-4xl font-semibold text-accent-light">{formatWon(auction.currentPrice)}</p>
+            <p className="text-xs text-[#bfc1bb]">현재가</p>
+            <p className="font-display text-4xl font-semibold text-white">{formatWon(auction.currentPrice)}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-ink-400">마감까지</p>
-            <CountdownTimer target={auction.auctionEndAt} extended={auction.status === "EXTENDED"} className="text-lg" />
+            <p className="text-xs text-[#bfc1bb]">마감까지</p>
+            <CountdownTimer target={auction.auctionEndAt} extended={auction.status === "EXTENDED"} className="text-lg" tone="dark" />
           </div>
         </div>
-        <p className="text-xs text-ink-400">
+        <p className="text-xs text-[#bfc1bb]">
           최소 입찰 단위 {formatWon(auction.minBidUnit)} · 마감 예정 {formatDateTime(auction.auctionEndAt)}
         </p>
 
         {isBiddable ? (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3 border-t border-ink-700 pt-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3 border-t border-white/20 pt-4">
             <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col gap-1 text-xs text-ink-400">
+              <label className="flex flex-col gap-1 text-xs text-[#bfc1bb]">
                 입찰자 ID (데모용)
                 <input
                   type="number"
                   value={bidderId}
                   onChange={(e) => setBidderId(Number(e.target.value))}
-                  className="input-field"
+                  className="w-full rounded-lg border border-white/30 bg-[#292b27] px-4 py-2.5 text-sm text-white focus:border-[#b8f53d] focus:outline-none focus:ring-1 focus:ring-[#b8f53d]"
                 />
               </label>
-              <label className="flex flex-col gap-1 text-xs text-ink-400">
+              <label className="flex flex-col gap-1 text-xs text-[#bfc1bb]">
                 입찰 금액 (원)
                 <input
                   type="number"
@@ -206,7 +198,7 @@ export default function BidPanel({ lot }: { lot: Lot }) {
                   step={auction.minBidUnit}
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="input-field"
+                  className="w-full rounded-lg border border-white/30 bg-[#292b27] px-4 py-2.5 text-sm text-white focus:border-[#b8f53d] focus:outline-none focus:ring-1 focus:ring-[#b8f53d]"
                 />
               </label>
             </div>
@@ -217,7 +209,7 @@ export default function BidPanel({ lot }: { lot: Lot }) {
                   type="button"
                   key={add}
                   onClick={() => setAmount(auction.currentPrice + add)}
-                  className="rounded-full border border-ink-600 px-3 py-1 text-xs text-ink-200 hover:border-accent hover:text-accent-light"
+                  className="rounded-full border border-white/30 px-3 py-1 text-xs text-white hover:border-[#b8f53d] hover:text-[#b8f53d]"
                 >
                   +{formatWon(add)}
                   {idx === 0 && " (최소)"}
@@ -225,38 +217,38 @@ export default function BidPanel({ lot }: { lot: Lot }) {
               ))}
             </div>
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className="text-sm text-[#ff6761]">{error}</p>}
 
             <button type="submit" disabled={submitting || amount < minNext} className="btn-primary mt-1">
               {submitting ? "입찰 중..." : `${formatWon(amount)}에 입찰하기`}
             </button>
-            <p className="text-[11px] text-ink-500">
+            <p className="text-[11px] text-[#bfc1bb]">
               마감 30초 이내에 입찰이 들어오면 마감이 자동으로 30초 연장됩니다 (안티 스나이핑).
             </p>
           </form>
         ) : (
-          <p className="border-t border-ink-700 pt-4 text-sm text-ink-300">
+          <p className="border-t border-white/20 pt-4 text-sm text-[#bfc1bb]">
             {auction.status === "CLOSED" ? "이미 마감된 경매입니다." : "아직 입찰이 시작되지 않았습니다."}
           </p>
         )}
       </div>
 
-      <div className="card-surface flex flex-col gap-3 p-6">
-        <p className="text-sm font-semibold text-cream">실시간 입찰 내역</p>
+      <div className="flex flex-col gap-3 rounded-xl border border-[#171717] bg-[#171717] p-6 text-white">
+        <p className="text-sm font-semibold text-white">실시간 입찰 내역</p>
         <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
           {log.length === 0 ? (
-            <p className="text-sm text-ink-400">아직 입찰 내역이 없습니다.</p>
+            <p className="text-sm text-[#bfc1bb]">아직 입찰 내역이 없습니다.</p>
           ) : (
             log.map((entry) => (
               <div
                 key={entry.id}
                 className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
-                  entry.mine ? "bg-accent/10 text-accent-light" : "bg-ink-700/40 text-ink-200"
+                  entry.mine ? "bg-[#33421d] text-white" : "bg-white/10 text-white"
                 }`}
               >
                 <span>입찰자 #{entry.bidderId}</span>
                 <span className="font-semibold">{formatWon(entry.price)}</span>
-                <span className="text-xs text-ink-400">
+                <span className="text-xs text-[#bfc1bb]">
                   {new Date(entry.createdAt).toLocaleTimeString("ko-KR")}
                 </span>
               </div>
@@ -266,7 +258,7 @@ export default function BidPanel({ lot }: { lot: Lot }) {
       </div>
 
       {lot.isMock && (
-        <p className="text-xs text-ink-500">
+        <p className="text-xs text-[#73756f]">
           * 초기 현재가는 목데이터입니다. 백엔드가 실행 중이고 같은 id의 경매가 있으면 실제 API 응답으로 자동
           갱신됩니다.
         </p>

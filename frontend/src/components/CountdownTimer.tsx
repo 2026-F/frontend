@@ -7,10 +7,12 @@ export default function CountdownTimer({
   target,
   extended,
   className = "",
+  tone = "light",
 }: {
   target: string;
   extended?: boolean;
   className?: string;
+  tone?: "light" | "dark";
 }) {
   const [remaining, setRemaining] = useState(() => getRemaining(target));
 
@@ -23,13 +25,15 @@ export default function CountdownTimer({
   const urgent = !remaining.isOver && remaining.totalMs <= 30_000;
 
   if (remaining.isOver) {
-    return <span className={`font-semibold text-ink-300 ${className}`}>마감되었습니다</span>;
+    return <span className={`font-semibold ${tone === "dark" ? "text-[#bfc1bb]" : "text-[#73756f]"} ${className}`}>마감되었습니다</span>;
   }
 
   return (
     <span
       className={`inline-flex items-center gap-2 font-display tabular-nums ${
-        urgent ? "animate-pulse text-red-400" : "text-cream"
+        urgent
+          ? tone === "dark" ? "animate-pulse text-[#ff6761]" : "animate-pulse text-[#e0443e]"
+          : tone === "dark" ? "text-white" : "text-[#171717]"
       } ${className}`}
     >
       {remaining.days > 0 && `${remaining.days}일 `}

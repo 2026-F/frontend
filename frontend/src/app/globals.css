@@ -51,18 +51,18 @@ body::-webkit-scrollbar,
   }
 
   .card-surface {
-    @apply rounded-xl border border-ink-700 bg-ink-800/60 shadow-card backdrop-blur-sm;
+    @apply rounded-xl border border-[#e8e9e4] bg-[#f7f8f4] shadow-card backdrop-blur-sm;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-accent to-pink
-      px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent/20 transition
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#b8f53d] to-[#d6fa76]
+      px-5 py-2.5 text-sm font-semibold text-[#171717] shadow-lg shadow-[#b8f53d]/20 transition
       hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-ink-500
-      px-5 py-2.5 text-sm font-semibold text-cream transition hover:border-accent hover:text-accent-light
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-[#d9dcd2]
+      px-5 py-2.5 text-sm font-semibold text-[#171717] transition hover:border-[#8dbb30] hover:text-[#566e22]
       disabled:cursor-not-allowed disabled:opacity-40;
   }
 
@@ -72,7 +72,7 @@ body::-webkit-scrollbar,
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-ink-500 bg-ink-900 px-4 py-2.5 text-sm text-cream
-      placeholder:text-ink-300 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+    @apply w-full rounded-lg border border-[#d9dcd2] bg-white px-4 py-2.5 text-sm text-[#171717]
+      placeholder:text-[#9b9d95] focus:border-[#8dbb30] focus:outline-none focus:ring-1 focus:ring-[#8dbb30];
   }
 }
