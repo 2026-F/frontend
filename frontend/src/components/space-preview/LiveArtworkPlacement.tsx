@@ -10,6 +10,10 @@ interface LiveArtworkPlacementProps {
   artworkTitle: string;
   /** 작품 가로/세로 비율 (widthCm / heightCm). 없으면 이미지 원본 비율을 사용 */
   aspectRatio?: number;
+  /** 배경으로 쓸 앨범 사진. 있으면 카메라 대신 이 사진 위에 배치 (카메라를 쓸 수 없을 때) */
+  photo?: { url: string; width: number; height: number };
+  /** 카메라를 켜지 못했을 때 호출 — 상위에서 앨범 사진 모드로 전환할 때 사용 */
+  onCameraError?: (message: string) => void;
 }
 
 type Placement = ArtworkPlacement;
@@ -31,7 +35,7 @@ const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 /**
- * 실시간 카메라 화면 위에 작품 이미지를 띄우고 위치·크기를 조절하는 컴포넌트
+ * 실시간 카메라 화면(또는 앨범 사진) 위에 작품 이미지를 띄우고 위치·크기를 조절하는 컴포넌트
  * - 한 손가락(마우스) 드래그: 위치 이동
  * - 두 손가락 핀치: 크기 조절
  * - 하단 슬라이더: 크기 조절 (PC나 핀치가 불편할 때)
@@ -41,8 +45,20 @@ export default function LiveArtworkPlacement({
   artworkImageUrl,
   artworkTitle,
   aspectRatio,
+  photo,
+  onCameraError,
 }: LiveArtworkPlacementProps) {
-  const { videoRef, status, error } = useCameraStream();
+  const usingPhoto = Boolean(photo);
+  const { videoRef, status, error } = useCameraStream(!usingPhoto);
+  // 작품을 배치할 수 있는 상태: 앨범 사진이 있거나, 카메라가 켜졌을 때
+  const ready = usingPhoto || status === "live";
+
+  // 상위에서 콜백을 매번 새로 만들어 넘겨도 에러 알림이 한 번만 가도록 ref로 보관
+  const onCameraErrorRef = useRef(onCameraError);
+  onCameraErrorRef.current = onCameraError;
+  useEffect(() => {
+    if (status === "error" && error) onCameraErrorRef.current?.(error);
+  }, [status, error]);
   const stageRef = useRef<HTMLDivElement>(null);
 
   const [placement, setPlacement] = useState<Placement>(INITIAL_PLACEMENT);
@@ -126,16 +142,21 @@ export default function LiveArtworkPlacement({
   const handleCapture = async () => {
     const video = videoRef.current;
     const stage = stageRef.current;
-    if (!video || !stage || !video.videoWidth || !artworkForCanvasRef.current) return;
+    if (!stage || !artworkForCanvasRef.current) return;
+    if (!photo && (!video || !video.videoWidth)) return;
 
     setIsCapturing(true);
     setCaptureError(null);
     try {
       const artwork = await artworkForCanvasRef.current;
+      // 배경: 앨범 사진이면 그 사진, 아니면 셔터를 누른 순간의 카메라 화면
+      const background = photo
+        ? { source: await loadImageForCanvas(photo.url), width: photo.width, height: photo.height }
+        : { source: video!, width: video!.videoWidth, height: video!.videoHeight };
       const rect = stage.getBoundingClientRect();
       const blob = await composePlacement({
-        background: video,
-        backgroundSize: { width: video.videoWidth, height: video.videoHeight },
+        background: background.source,
+        backgroundSize: { width: background.width, height: background.height },
         stageSize: { width: rect.width, height: rect.height },
         artwork,
         artworkSize: { width: artwork.naturalWidth, height: artwork.naturalHeight },
@@ -167,15 +188,19 @@ export default function LiveArtworkPlacement({
         ref={stageRef}
         className="relative aspect-[3/4] w-full overflow-hidden rounded-[10px] bg-[#111111]"
       >
-        {/* playsInline: 아이폰에서 영상이 전체화면으로 튀어나가지 않게 함 */}
-        <video
-          ref={videoRef}
-          playsInline
-          muted
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        {photo ? (
+          <img src={photo.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          // playsInline: 아이폰에서 영상이 전체화면으로 튀어나가지 않게 함
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
 
-        {status === "live" && (
+        {ready && (
           <div
             role="img"
             aria-label={`${artworkTitle} 배치 위치`}
@@ -204,13 +229,13 @@ export default function LiveArtworkPlacement({
           </div>
         )}
 
-        {status === "starting" && (
+        {!usingPhoto && status === "starting" && (
           <p className="absolute inset-0 flex items-center justify-center text-[13px] text-white/80">
             카메라를 켜는 중...
           </p>
         )}
 
-        {status === "error" && (
+        {!usingPhoto && status === "error" && (
           <p
             role="alert"
             className="absolute inset-0 flex items-center justify-center px-6 text-center text-[13px] leading-relaxed text-white/90"
@@ -235,7 +260,7 @@ export default function LiveArtworkPlacement({
         </p>
       )}
 
-      {status === "live" && !captured && (
+      {ready && !captured && (
         <label className="flex items-center gap-3 text-[12px] font-medium text-[#42433f]">
           크기
           <input
@@ -250,7 +275,7 @@ export default function LiveArtworkPlacement({
         </label>
       )}
 
-      {status === "live" && !captured && (
+      {ready && !captured && (
         <button
           type="button"
           aria-label="사진 찍기"

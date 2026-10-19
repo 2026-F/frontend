@@ -131,6 +131,12 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
           </Link>
         )}
 
+        {primaryImage && (
+          <Link href={`/artworks/${artwork.id}/preview`} className={`${canBid ? "mt-2" : "mt-4"} flex h-11 w-full items-center justify-center rounded-[7px] border border-[#dfe0da] bg-white text-[12px] font-semibold text-[#111111] transition active:scale-[0.99]`}>
+            내 공간에 걸어보기
+          </Link>
+        )}
+
         {(hasModel || videos.length > 0 || artwork.description || artwork.certificateUrl) && (
           <div className="mt-6 border-t border-[#efefeb] pt-5">
             <h3 className="text-[14px] font-bold">작품 상세</h3>
