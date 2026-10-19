@@ -1,6 +1,8 @@
 "use client";
 
-import { useRef, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { composePlacement, loadImageForCanvas, type ArtworkPlacement } from "@/lib/composeImage";
+import { saveOrShareImage } from "@/lib/saveImage";
 import { useCameraStream } from "./useCameraStream";
 
 interface LiveArtworkPlacementProps {
@@ -10,14 +12,13 @@ interface LiveArtworkPlacementProps {
   aspectRatio?: number;
 }
 
-/** 작품 위치·크기 — 화면 크기가 달라도 똑같이 보이도록 화면 대비 비율(0~1)로 저장 */
-interface Placement {
-  /** 작품 중심의 가로 위치 (0 = 왼쪽 끝, 1 = 오른쪽 끝) */
-  centerX: number;
-  /** 작품 중심의 세로 위치 (0 = 위쪽 끝, 1 = 아래쪽 끝) */
-  centerY: number;
-  /** 작품 가로 길이 / 화면 가로 길이 */
-  width: number;
+type Placement = ArtworkPlacement;
+
+/** 셔터로 찍은 결과 이미지 */
+interface CapturedImage {
+  blob: Blob;
+  /** 미리보기용 object URL */
+  url: string;
 }
 
 const INITIAL_PLACEMENT: Placement = { centerX: 0.5, centerY: 0.42, width: 0.45 };
@@ -34,6 +35,7 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
  * - 한 손가락(마우스) 드래그: 위치 이동
  * - 두 손가락 핀치: 크기 조절
  * - 하단 슬라이더: 크기 조절 (PC나 핀치가 불편할 때)
+ * - 셔터: 화면에 보이는 그대로(카메라 + 작품) 합성 → 미리보기 → 저장
  */
 export default function LiveArtworkPlacement({
   artworkImageUrl,
@@ -100,6 +102,65 @@ export default function LiveArtworkPlacement({
     resetGestureStart();
   };
 
+  // ---- 셔터 / 저장 ----
+  const [captured, setCaptured] = useState<CapturedImage | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
+
+  // 합성용 작품 이미지를 미리 불러둠 → 셔터를 누른 순간의 카메라 화면이 바로 찍히도록
+  const artworkForCanvasRef = useRef<Promise<HTMLImageElement> | null>(null);
+  useEffect(() => {
+    const loading = loadImageForCanvas(artworkImageUrl);
+    loading.catch(() => {}); // 실패는 셔터를 누를 때 안내
+    artworkForCanvasRef.current = loading;
+  }, [artworkImageUrl]);
+
+  // 결과를 다시 찍거나 화면을 떠날 때 미리보기 URL 해제
+  useEffect(() => {
+    return () => {
+      if (captured) URL.revokeObjectURL(captured.url);
+    };
+  }, [captured]);
+
+  const handleCapture = async () => {
+    const video = videoRef.current;
+    const stage = stageRef.current;
+    if (!video || !stage || !video.videoWidth || !artworkForCanvasRef.current) return;
+
+    setIsCapturing(true);
+    setCaptureError(null);
+    try {
+      const artwork = await artworkForCanvasRef.current;
+      const rect = stage.getBoundingClientRect();
+      const blob = await composePlacement({
+        background: video,
+        backgroundSize: { width: video.videoWidth, height: video.videoHeight },
+        stageSize: { width: rect.width, height: rect.height },
+        artwork,
+        artworkSize: { width: artwork.naturalWidth, height: artwork.naturalHeight },
+        artworkRatio: ratio,
+        placement,
+      });
+      setCaptured({ blob, url: URL.createObjectURL(blob) });
+    } catch (e) {
+      setCaptureError(e instanceof Error ? e.message : "사진을 찍지 못했어요.");
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!captured) return;
+    setIsSaving(true);
+    try {
+      const safeTitle = artworkTitle.replace(/[\\/:*?"<>|\s]+/g, "_"); // 파일 이름에 못 쓰는 문자 제거
+      await saveOrShareImage(captured.blob, `artbid-${safeTitle}-${Date.now()}.jpg`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <div
@@ -157,9 +218,24 @@ export default function LiveArtworkPlacement({
             {error}
           </p>
         )}
+
+        {/* 셔터로 찍은 결과 미리보기 — 카메라 화면 위에 덮어서 보여줌 */}
+        {captured && (
+          <img
+            src={captured.url}
+            alt={`${artworkTitle}을(를) 내 공간에 걸어본 사진`}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
       </div>
 
-      {status === "live" && (
+      {captureError && (
+        <p role="alert" className="text-[12px] text-[#d6453d]">
+          {captureError}
+        </p>
+      )}
+
+      {status === "live" && !captured && (
         <label className="flex items-center gap-3 text-[12px] font-medium text-[#42433f]">
           크기
           <input
@@ -172,6 +248,38 @@ export default function LiveArtworkPlacement({
             className="flex-1 accent-[#111111]"
           />
         </label>
+      )}
+
+      {status === "live" && !captured && (
+        <button
+          type="button"
+          aria-label="사진 찍기"
+          disabled={isCapturing}
+          onClick={handleCapture}
+          className="mx-auto grid h-16 w-16 place-items-center rounded-full border-4 border-[#111111] bg-white transition active:scale-95 disabled:opacity-40"
+        >
+          <span className="h-11 w-11 rounded-full bg-[#111111]" />
+        </button>
+      )}
+
+      {captured && (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setCaptured(null)}
+            className="flex-1 rounded-full border border-[#d9dcd2] bg-white px-4 py-3 text-[13px] font-semibold text-[#111111]"
+          >
+            다시 찍기
+          </button>
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={handleSave}
+            className="flex-1 rounded-full bg-[#111111] px-4 py-3 text-[13px] font-semibold text-white disabled:opacity-40"
+          >
+            저장하기
+          </button>
+        </div>
       )}
     </div>
   );
