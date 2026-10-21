@@ -65,6 +65,10 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
     (item) => item.mediaType === "MODEL_3D" && (item.url || item.sourceUrl),
   );
   const primaryImage = photos[0]?.url ?? artwork.imageUrl;
+  // 3D 모델이 있거나, 사진이 있는 평면 작품이면(캔버스에 입혀 보여줌) "3D로 보기" 버튼을 보여줌
+  // 조각·공예처럼 입체 작품인데 모델이 없으면 액자 모양이 어색해서 버튼을 숨김
+  const isFlatWork = !artwork.category || !["SCULPTURE", "CRAFT"].includes(artwork.category);
+  const canView3d = hasModel || (Boolean(primaryImage) && isFlatWork);
   const dimensions = dimensionsOf(artwork);
   const currentPrice = auction?.currentPrice ?? artwork.startPrice;
   const canBid = auction?.status === "ONGOING" || auction?.status === "EXTENDED";
@@ -137,12 +141,12 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
           </Link>
         )}
 
-        {(hasModel || primaryImage || videos.length > 0 || artwork.description || artwork.certificateUrl) && (
+        {(canView3d || videos.length > 0 || artwork.description || artwork.certificateUrl) && (
           <div className="mt-6 border-t border-[#efefeb] pt-5">
             <h3 className="text-[14px] font-bold">작품 상세</h3>
             {artwork.description && <p className="mt-2 whitespace-pre-line text-[12px] leading-5 text-[#666762]">{artwork.description}</p>}
             <div className="mt-4 flex gap-2">
-              {(hasModel || primaryImage) && <Link href={`/artworks/${artwork.id}/viewer`} className="flex h-10 flex-1 items-center justify-center rounded-lg border border-[#dfe0da] text-[11px] font-semibold">3D로 보기</Link>}
+              {canView3d && <Link href={`/artworks/${artwork.id}/viewer`} className="flex h-10 flex-1 items-center justify-center rounded-lg border border-[#dfe0da] text-[11px] font-semibold">3D로 보기</Link>}
               {artwork.certificateUrl && <a href={artwork.certificateUrl} target="_blank" rel="noreferrer" className="flex h-10 flex-1 items-center justify-center rounded-lg border border-[#dfe0da] text-[11px] font-semibold">보증서 확인</a>}
             </div>
             {videos.map((video) => video.url ? (
