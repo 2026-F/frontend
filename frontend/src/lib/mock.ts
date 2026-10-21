@@ -20,6 +20,7 @@ type MockRecord = {
   widthCm: number | null;
   heightCm: number | null;
   depthCm?: number | null; // 조각·공예처럼 입체 작품만 씀
+  modelUrl?: string | null; // 3D 모델(.glb) 경로. 있으면 상세 media에 MODEL_3D로 들어감
   productionYear: number;
   artworkStatus: ArtworkStatus;
   auctionStatus: AuctionStatus;
@@ -111,6 +112,8 @@ const RECORDS: MockRecord[] = [
 // 아래는 목록을 풍성하게 보여주기 위한 "가상" 작품 35점입니다. (회화 5 · 사진 10 · 조각 10 · 공예 10)
 // - 작가 이름·제목·가격·상태는 모두 지어낸 값이고, 실존 작가·작품과 관계없습니다.
 // - 이미지(public/artworks/mock/)는 코드로 직접 생성한 그림/3D 렌더링이라 저작권 걱정이 없습니다.
+// - 조각·공예 20점은 이미지를 렌더링한 3D 모델을 그대로 .glb로 내보내 public/models/mock/에 넣었습니다.
+//   크기(size)도 그 3D 모델의 실제 치수(cm)에 맞췄습니다.
 // - 실제 데이터가 백엔드에 쌓이면 FICTIONAL_SEEDS를 통째로 지우면 됩니다.
 // ---------------------------------------------------------------------
 
@@ -122,6 +125,7 @@ type FictionalSeed = {
   artistName: string;
   title: string;
   image: string; // public/artworks/mock/ 안의 파일 이름
+  model?: string; // public/models/mock/ 안의 3D 모델 파일 이름 (조각·공예만)
   category: ArtworkCategory;
   medium: string;
   size: [number, number] | [number, number, number]; // [가로, 세로] 또는 [가로, 높이, 깊이] (cm)
@@ -154,28 +158,28 @@ const FICTIONAL_SEEDS: FictionalSeed[] = [
   { id: 21, artistName: "홍예서", title: "비 오는 창가", image: "photo-rain-window.jpg", category: "PHOTOGRAPHY", medium: "아카이벌 피그먼트 프린트 (에디션 6/10)", size: [40, 50], year: 2025, stage: "PREVIEW", startPrice: 250_000, estimatedPrice: 450_000 },
 
   // 조각 10
-  { id: 22, artistName: "김태린", title: "매듭", image: "sc-bronze-knot.jpg", category: "SCULPTURE", medium: "브론즈", size: [45, 48, 30], year: 2024, stage: "ONGOING", startPrice: 3_500_000, estimatedPrice: 6_000_000, bids: 4, endInDays: 5 },
-  { id: 23, artistName: "이도윤", title: "균형의 탑", image: "sc-stacked-stones.jpg", category: "SCULPTURE", medium: "자연석", size: [30, 62, 26], year: 2025, stage: "PREVIEW", startPrice: 1_800_000, estimatedPrice: 3_000_000 },
-  { id: 24, artistName: "정아름", title: "비틀린 기둥", image: "sc-marble-twist.jpg", category: "SCULPTURE", medium: "대리석", size: [22, 120, 22], year: 2023, stage: "SCHEDULED", startPrice: 4_200_000, estimatedPrice: 7_000_000 },
-  { id: 25, artistName: "조현우", title: "반사하는 정원", image: "sc-steel-spheres.jpg", category: "SCULPTURE", medium: "스테인리스 스틸", size: [70, 40, 60], year: 2025, stage: "ONGOING", startPrice: 2_600_000, estimatedPrice: 4_500_000, bids: 3, endInDays: 3 },
-  { id: 26, artistName: "배소율", title: "서 있는 사람", image: "sc-thin-figure.jpg", category: "SCULPTURE", medium: "브론즈", size: [14, 92, 12], year: 2024, stage: "CLOSED", startPrice: 2_200_000, estimatedPrice: 3_500_000, bids: 6 },
-  { id: 27, artistName: "임재석", title: "붉은 아치", image: "sc-red-arc.jpg", category: "SCULPTURE", medium: "철에 우레탄 도장", size: [120, 60, 20], year: 2025, stage: "PREVIEW", startPrice: 3_000_000, estimatedPrice: 5_000_000 },
-  { id: 28, artistName: "황보은", title: "쌓인 시간", image: "sc-wood-totem.jpg", category: "SCULPTURE", medium: "느티나무", size: [24, 95, 24], year: 2024, stage: "ONGOING", startPrice: 1_400_000, estimatedPrice: 2_400_000, bids: 2, endInDays: 6 },
-  { id: 29, artistName: "송지후", title: "흰 물결", image: "sc-white-wave.jpg", category: "SCULPTURE", medium: "레진에 도장", size: [80, 55, 40], year: 2025, stage: "SCHEDULED", startPrice: 1_900_000, estimatedPrice: 3_200_000 },
-  { id: 30, artistName: "차민서", title: "흩어진 정육면체", image: "sc-fragment-cube.jpg", category: "SCULPTURE", medium: "콘크리트", size: [50, 50, 50], year: 2023, stage: "PREVIEW", startPrice: 1_600_000, estimatedPrice: 2_800_000 },
-  { id: 31, artistName: "유하진", title: "결정", image: "sc-glass-crystal.jpg", category: "SCULPTURE", medium: "캐스팅 유리", size: [35, 35, 35], year: 2025, stage: "ONGOING", startPrice: 2_000_000, estimatedPrice: 3_600_000, bids: 5, endInDays: 2 },
+  { id: 22, artistName: "김태린", title: "매듭", image: "sc-bronze-knot.jpg", model: "sc-bronze-knot.glb", category: "SCULPTURE", medium: "브론즈", size: [38, 40, 30], year: 2024, stage: "ONGOING", startPrice: 3_500_000, estimatedPrice: 6_000_000, bids: 4, endInDays: 5 },
+  { id: 23, artistName: "이도윤", title: "균형의 탑", image: "sc-stacked-stones.jpg", model: "sc-stacked-stones.glb", category: "SCULPTURE", medium: "자연석", size: [33, 62, 38], year: 2025, stage: "PREVIEW", startPrice: 1_800_000, estimatedPrice: 3_000_000 },
+  { id: 24, artistName: "정아름", title: "비틀린 기둥", image: "sc-marble-twist.jpg", model: "sc-marble-twist.glb", category: "SCULPTURE", medium: "대리석", size: [32, 120, 32], year: 2023, stage: "SCHEDULED", startPrice: 4_200_000, estimatedPrice: 7_000_000 },
+  { id: 25, artistName: "조현우", title: "반사하는 정원", image: "sc-steel-spheres.jpg", model: "sc-steel-spheres.glb", category: "SCULPTURE", medium: "스테인리스 스틸", size: [66, 40, 60], year: 2025, stage: "ONGOING", startPrice: 2_600_000, estimatedPrice: 4_500_000, bids: 3, endInDays: 3 },
+  { id: 26, artistName: "배소율", title: "서 있는 사람", image: "sc-thin-figure.jpg", model: "sc-thin-figure.glb", category: "SCULPTURE", medium: "브론즈", size: [18, 92, 14], year: 2024, stage: "CLOSED", startPrice: 2_200_000, estimatedPrice: 3_500_000, bids: 6 },
+  { id: 27, artistName: "임재석", title: "붉은 아치", image: "sc-red-arc.jpg", model: "sc-red-arc.glb", category: "SCULPTURE", medium: "철에 우레탄 도장", size: [110, 60, 69], year: 2025, stage: "PREVIEW", startPrice: 3_000_000, estimatedPrice: 5_000_000 },
+  { id: 28, artistName: "황보은", title: "쌓인 시간", image: "sc-wood-totem.jpg", model: "sc-wood-totem.glb", category: "SCULPTURE", medium: "느티나무", size: [31, 95, 31], year: 2024, stage: "ONGOING", startPrice: 1_400_000, estimatedPrice: 2_400_000, bids: 2, endInDays: 6 },
+  { id: 29, artistName: "송지후", title: "흰 물결", image: "sc-white-wave.jpg", model: "sc-white-wave.glb", category: "SCULPTURE", medium: "레진에 도장", size: [50, 55, 31], year: 2025, stage: "SCHEDULED", startPrice: 1_900_000, estimatedPrice: 3_200_000 },
+  { id: 30, artistName: "차민서", title: "흩어진 정육면체", image: "sc-fragment-cube.jpg", model: "sc-fragment-cube.glb", category: "SCULPTURE", medium: "콘크리트", size: [69, 50, 71], year: 2023, stage: "PREVIEW", startPrice: 1_600_000, estimatedPrice: 2_800_000 },
+  { id: 31, artistName: "유하진", title: "결정", image: "sc-glass-crystal.jpg", model: "sc-glass-crystal.glb", category: "SCULPTURE", medium: "캐스팅 유리", size: [25, 24, 26], year: 2025, stage: "ONGOING", startPrice: 2_000_000, estimatedPrice: 3_600_000, bids: 5, endInDays: 2 },
 
   // 공예 10
-  { id: 32, artistName: "노은재", title: "백자 달항아리", image: "cr-moon-jar.jpg", category: "CRAFT", medium: "백자", size: [42, 44, 42], year: 2024, stage: "ONGOING", startPrice: 2_800_000, estimatedPrice: 5_000_000, bids: 8, endInDays: 4 },
-  { id: 33, artistName: "구본결", title: "청자 매병", image: "cr-celadon.jpg", category: "CRAFT", medium: "청자", size: [30, 38, 30], year: 2025, stage: "PREVIEW", startPrice: 1_700_000, estimatedPrice: 3_000_000 },
-  { id: 34, artistName: "탁서영", title: "분청 다완", image: "cr-buncheong-bowl.jpg", category: "CRAFT", medium: "분청사기", size: [14, 8, 14], year: 2025, stage: "ONGOING", startPrice: 350_000, estimatedPrice: 600_000, bids: 4, endInDays: 2 },
-  { id: 35, artistName: "피윤호", title: "흑유 화병", image: "cr-black-vase.jpg", category: "CRAFT", medium: "흑유 도자", size: [12, 34, 12], year: 2024, stage: "SCHEDULED", startPrice: 420_000, estimatedPrice: 800_000 },
-  { id: 36, artistName: "변다희", title: "느티나무 볼", image: "cr-wood-bowl.jpg", category: "CRAFT", medium: "느티나무에 옻칠", size: [36, 10, 36], year: 2025, stage: "PREVIEW", startPrice: 280_000, estimatedPrice: 500_000 },
-  { id: 37, artistName: "마준서", title: "방짜 유기 한 쌍", image: "cr-brass-bowl.jpg", category: "CRAFT", medium: "방짜유기", size: [22, 8, 22], year: 2024, stage: "ONGOING", startPrice: 480_000, estimatedPrice: 900_000, bids: 3, endInDays: 5 },
-  { id: 38, artistName: "석하윤", title: "푸른 숨", image: "cr-glass-vase.jpg", category: "CRAFT", medium: "블로잉 유리", size: [14, 30, 14], year: 2025, stage: "CLOSED", startPrice: 380_000, estimatedPrice: 650_000, bids: 5 },
-  { id: 39, artistName: "양지석", title: "나전 함", image: "cr-lacquer-box.jpg", category: "CRAFT", medium: "나전칠기", size: [30, 11, 21], year: 2023, stage: "ONGOING", startPrice: 1_300_000, estimatedPrice: 2_200_000, bids: 2, endInDays: 3 },
-  { id: 40, artistName: "연보람", title: "짚 바구니", image: "cr-basket.jpg", category: "CRAFT", medium: "볏짚", size: [30, 22, 30], year: 2025, stage: "SCHEDULED", startPrice: 180_000, estimatedPrice: 320_000 },
-  { id: 41, artistName: "도채운", title: "세 개의 잔", image: "cr-terracotta-cups.jpg", category: "CRAFT", medium: "테라코타 (3점 1조)", size: [9, 7, 9], year: 2025, stage: "PREVIEW", startPrice: 150_000, estimatedPrice: 280_000 },
+  { id: 32, artistName: "노은재", title: "백자 달항아리", image: "cr-moon-jar.jpg", model: "cr-moon-jar.glb", category: "CRAFT", medium: "백자", size: [42, 44, 42], year: 2024, stage: "ONGOING", startPrice: 2_800_000, estimatedPrice: 5_000_000, bids: 8, endInDays: 4 },
+  { id: 33, artistName: "구본결", title: "청자 매병", image: "cr-celadon.jpg", model: "cr-celadon.glb", category: "CRAFT", medium: "청자", size: [23, 38, 23], year: 2025, stage: "PREVIEW", startPrice: 1_700_000, estimatedPrice: 3_000_000 },
+  { id: 34, artistName: "탁서영", title: "분청 다완", image: "cr-buncheong-bowl.jpg", model: "cr-buncheong-bowl.glb", category: "CRAFT", medium: "분청사기", size: [19, 8, 19], year: 2025, stage: "ONGOING", startPrice: 350_000, estimatedPrice: 600_000, bids: 4, endInDays: 2 },
+  { id: 35, artistName: "피윤호", title: "흑유 화병", image: "cr-black-vase.jpg", model: "cr-black-vase.glb", category: "CRAFT", medium: "흑유 도자", size: [10, 34, 10], year: 2024, stage: "SCHEDULED", startPrice: 420_000, estimatedPrice: 800_000 },
+  { id: 36, artistName: "변다희", title: "느티나무 볼", image: "cr-wood-bowl.jpg", model: "cr-wood-bowl.glb", category: "CRAFT", medium: "느티나무에 옻칠", size: [38, 10, 38], year: 2025, stage: "PREVIEW", startPrice: 280_000, estimatedPrice: 500_000 },
+  { id: 37, artistName: "마준서", title: "방짜 유기 한 쌍", image: "cr-brass-bowl.jpg", model: "cr-brass-bowl.glb", category: "CRAFT", medium: "방짜유기", size: [40, 8, 31], year: 2024, stage: "ONGOING", startPrice: 480_000, estimatedPrice: 900_000, bids: 3, endInDays: 5 },
+  { id: 38, artistName: "석하윤", title: "푸른 숨", image: "cr-glass-vase.jpg", model: "cr-glass-vase.glb", category: "CRAFT", medium: "블로잉 유리", size: [12, 30, 12], year: 2025, stage: "CLOSED", startPrice: 380_000, estimatedPrice: 650_000, bids: 5 },
+  { id: 39, artistName: "양지석", title: "나전 함", image: "cr-lacquer-box.jpg", model: "cr-lacquer-box.glb", category: "CRAFT", medium: "나전칠기", size: [37, 11, 34], year: 2023, stage: "ONGOING", startPrice: 1_300_000, estimatedPrice: 2_200_000, bids: 2, endInDays: 3 },
+  { id: 40, artistName: "연보람", title: "짚 바구니", image: "cr-basket.jpg", model: "cr-basket.glb", category: "CRAFT", medium: "볏짚", size: [36, 22, 36], year: 2025, stage: "SCHEDULED", startPrice: 180_000, estimatedPrice: 320_000 },
+  { id: 41, artistName: "도채운", title: "세 개의 잔", image: "cr-terracotta-cups.jpg", model: "cr-terracotta-cups.glb", category: "CRAFT", medium: "테라코타 (3점 1조)", size: [27, 7, 14], year: 2025, stage: "PREVIEW", startPrice: 150_000, estimatedPrice: 280_000 },
 ];
 
 // 시작가에 맞춰 호가 단위를 정함 (100만 원 미만 5만, 500만 원 미만 10만, 그 이상 20만)
@@ -207,6 +211,7 @@ function toRecord(seed: FictionalSeed): MockRecord {
     widthCm,
     heightCm,
     depthCm,
+    modelUrl: seed.model ? `/models/mock/${seed.model}` : null,
     productionYear: seed.year,
     ...stage,
     startPrice: seed.startPrice,
@@ -238,7 +243,13 @@ export const MOCK_ARTWORK_DETAILS: ArtworkDetail[] = ALL_RECORDS.map((record) =>
   certificateUrl: null,
   imageUrl: record.imageUrl,
   status: record.artworkStatus,
-  media: [{ id: record.id, mediaType: "PHOTO", url: record.imageUrl, sourceUrl: null, sortOrder: 0 }],
+  media: [
+    { id: record.id, mediaType: "PHOTO", url: record.imageUrl, sourceUrl: null, sortOrder: 0 },
+    // 3D 모델이 있는 작품만 MODEL_3D 미디어를 추가 → 상세의 "3D로 보기" 버튼과 뷰어가 이걸 씀
+    ...(record.modelUrl
+      ? [{ id: 1000 + record.id, mediaType: "MODEL_3D" as const, url: record.modelUrl, sourceUrl: null, sortOrder: 1 }]
+      : []),
+  ],
   createdAt: at(-7 * DAY),
   updatedAt: at(-DAY),
 }));
