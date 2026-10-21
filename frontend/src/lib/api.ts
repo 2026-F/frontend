@@ -5,6 +5,8 @@ import type {
   Auction,
   BidResult,
   Livestream,
+  LoginResponse, // 추가: 로그인 응답 타입
+  Member, // 추가: 회원 정보 타입 (회원가입 응답, 회원 조회 응답에 같이 씀)
   PageResponse,
   PresignedUploadResponse,
   StageToken,
@@ -58,6 +60,71 @@ export async function fetchArtworks(params?: { keyword?: string; page?: number; 
 export async function fetchArtworkDetail(artworkId: number): Promise<ArtworkDetail> {
   const res = await api.get<ArtworkDetail>(`/api/artworks/${artworkId}`);
   return res.data;
+}
+
+// -----------------------------------------------------------------------
+// 인증(로그인/회원가입) 관련 API
+// 백엔드: member/controller/AuthController.java, MemberController.java
+// -----------------------------------------------------------------------
+
+/**
+ * 로그인
+ * POST /api/auth/login  body: { email, password }
+ * 성공하면 { accessToken, memberId }를 돌려줌
+ * 실패(이메일 없음/비밀번호 틀림)하면 백엔드가 404 + "이메일 또는 비밀번호가 올바르지 않습니다." 문자열을 보냄
+ * → axios는 2xx가 아니면 에러를 throw하니까, 호출하는 쪽에서 try/catch로 잡으면 됨
+ */
+export async function login(email: string, password: string): Promise<LoginResponse> {
+  const res = await api.post<LoginResponse>("/api/auth/login", { email, password });
+  return res.data; // res 전체가 아니라 실제 응답 본문(JSON)만 꺼내서 반환
+}
+
+/**
+ * 회원가입
+ * POST /api/auth/signup  body: { email, password, name }
+ * 성공하면 201 Created + 가입된 회원 정보 { id, email, name, role }
+ * 이미 가입된 이메일이면 404 + "이미 가입된 이메일입니다: ..." 문자열
+ * 주의: 가입만 될 뿐 토큰은 안 줌 → 가입 후 로그인을 한 번 더 호출해야 로그인 상태가 됨
+ * 역할(role)은 백엔드에서 항상 BIDDER(입찰자)로 고정해서 만듦
+ */
+export async function signUp(email: string, password: string, name: string): Promise<Member> {
+  const res = await api.post<Member>("/api/auth/signup", { email, password, name });
+  return res.data;
+}
+
+/**
+ * 로그아웃
+ * POST /api/auth/logout → 204 No Content
+ * JWT는 서버가 따로 저장하지 않는 방식이라 백엔드는 사실 아무 일도 안 함.
+ * 진짜 로그아웃은 프론트에서 저장해둔 토큰을 지우는 것(useAuth의 clear)이고,
+ * 이 호출은 나중에 백엔드가 토큰 블랙리스트 같은 걸 만들 때를 대비해 맞춰두는 용도
+ */
+export async function logout(): Promise<void> {
+  await api.post("/api/auth/logout");
+}
+
+/**
+ * 회원 정보 조회
+ * GET /api/members/{id} → { id, email, name, role }
+ * 로그인 응답에 이름이 없어서, 로그인 직후 memberId로 이걸 불러 화면에 쓸 이름을 받아옴
+ */
+export async function fetchMember(memberId: number): Promise<Member> {
+  const res = await api.get<Member>(`/api/members/${memberId}`);
+  return res.data;
+}
+
+/**
+ * 에러를 화면에 보여줄 문구로 바꿔주는 도우미 함수
+ * 백엔드 GlobalExceptionHandler는 에러 메시지를 JSON이 아닌 "그냥 문자열"로 보내줌
+ *   예) "이메일 또는 비밀번호가 올바르지 않습니다."
+ * - axios 에러이고 응답 본문이 문자열이면 → 그 메시지를 그대로 사용
+ * - 서버가 꺼져 있거나 네트워크 오류라 응답 자체가 없으면 → fallback(기본 문구) 사용
+ */
+export function errorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error) && typeof error.response?.data === "string" && error.response.data) {
+    return error.response.data;
+  }
+  return fallback;
 }
 
 export async function fetchAuction(auctionId: number): Promise<Auction> {
