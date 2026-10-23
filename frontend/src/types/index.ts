@@ -170,3 +170,16 @@ export interface Lot {
   viewerCount: number;
   isMock?: boolean;
 }
+
+// ---------------------------------------------------------------------
+// 로그인 API(POST /api/auth/login)의 응답 모양
+// 백엔드 LoginResponse.java 레코드와 필드 이름이 똑같아야 JSON이 그대로 들어옴
+// ---------------------------------------------------------------------
+export interface LoginResponse {
+  // JWT 토큰. 이후 요청마다 "Authorization: Bearer <토큰>" 헤더로 보내면
+  // 백엔드 JwtAuthenticationFilter가 이걸 읽어서 "누가 보낸 요청인지" 알아냄
+  // 유효기간은 기본 1시간 (백엔드 app.jwt.validity-ms 설정)
+  accessToken: string;
+  // 로그인한 회원의 번호. 이름은 응답에 없어서 이 번호로 회원 정보를 따로 조회해야 함
+  memberId: number;
+}
