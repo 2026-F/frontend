@@ -14,11 +14,13 @@ type MockRecord = {
   artistName: string;
   title: string;
   imageUrl: string;
-  sourcePageUrl: string;
+  sourcePageUrl: string | null; // 가상 작품은 출처가 없어서 null
   category: ArtworkCategory;
   medium: string | null;
   widthCm: number | null;
   heightCm: number | null;
+  depthCm?: number | null; // 조각·공예처럼 입체 작품만 씀
+  modelUrl?: string | null; // 3D 모델(.glb) 경로. 있으면 상세 media에 MODEL_3D로 들어감
   productionYear: number;
   artworkStatus: ArtworkStatus;
   auctionStatus: AuctionStatus;
@@ -106,7 +108,125 @@ const RECORDS: MockRecord[] = [
   },
 ];
 
-export const MOCK_ARTWORK_DETAILS: ArtworkDetail[] = RECORDS.map((record) => ({
+// ---------------------------------------------------------------------
+// 아래는 목록을 풍성하게 보여주기 위한 "가상" 작품 35점입니다. (회화 5 · 사진 10 · 조각 10 · 공예 10)
+// - 작가 이름·제목·가격·상태는 모두 지어낸 값이고, 실존 작가·작품과 관계없습니다.
+// - 이미지(public/artworks/mock/)는 코드로 직접 생성한 그림/3D 렌더링이라 저작권 걱정이 없습니다.
+// - 조각·공예 20점은 이미지를 렌더링한 3D 모델을 그대로 .glb로 내보내 public/models/mock/에 넣었습니다.
+//   크기(size)도 그 3D 모델의 실제 치수(cm)에 맞췄습니다.
+// - 실제 데이터가 백엔드에 쌓이면 FICTIONAL_SEEDS를 통째로 지우면 됩니다.
+// ---------------------------------------------------------------------
+
+// 경매 진행 상황. 이 값 하나로 작품 상태·경매 상태·프리뷰/마감 시각을 한꺼번에 정합니다.
+type MockStage = "ONGOING" | "PREVIEW" | "SCHEDULED" | "CLOSED";
+
+type FictionalSeed = {
+  id: number;
+  artistName: string;
+  title: string;
+  image: string; // public/artworks/mock/ 안의 파일 이름
+  model?: string; // public/models/mock/ 안의 3D 모델 파일 이름 (조각·공예만)
+  category: ArtworkCategory;
+  medium: string;
+  size: [number, number] | [number, number, number]; // [가로, 세로] 또는 [가로, 높이, 깊이] (cm)
+  year: number;
+  stage: MockStage;
+  startPrice: number;
+  estimatedPrice: number;
+  bids?: number; // 진행 중·낙찰 작품의 입찰 수
+  endInDays?: number; // 진행 중 작품이 며칠 뒤 마감되는지
+};
+
+const FICTIONAL_SEEDS: FictionalSeed[] = [
+  // 회화 5
+  { id: 7, artistName: "한서윤", title: "붉은 정원의 오후", image: "paint-colorfield.jpg", category: "PAINTING", medium: "캔버스에 유채", size: [80, 100], year: 2024, stage: "ONGOING", startPrice: 1_200_000, estimatedPrice: 2_500_000, bids: 6, endInDays: 3 },
+  { id: 8, artistName: "박도현", title: "파동 No.7", image: "paint-dots.jpg", category: "PAINTING", medium: "캔버스에 아크릴", size: [72.7, 90.9], year: 2025, stage: "PREVIEW", startPrice: 800_000, estimatedPrice: 1_600_000 },
+  { id: 9, artistName: "최윤슬", title: "구성 — 오후 세 시", image: "paint-geometric.jpg", category: "PAINTING", medium: "캔버스에 아크릴", size: [60, 75], year: 2023, stage: "ONGOING", startPrice: 650_000, estimatedPrice: 1_200_000, bids: 3, endInDays: 5 },
+  { id: 10, artistName: "강민재", title: "엉킨 대화", image: "paint-gesture.jpg", category: "PAINTING", medium: "캔버스에 혼합 재료", size: [100, 125], year: 2025, stage: "SCHEDULED", startPrice: 1_500_000, estimatedPrice: 3_000_000 },
+  { id: 11, artistName: "오하늘", title: "먼 산, 옅은 숨", image: "paint-ink.jpg", category: "PAINTING", medium: "한지에 수묵담채", size: [64, 80], year: 2024, stage: "CLOSED", startPrice: 900_000, estimatedPrice: 1_500_000, bids: 5 },
+
+  // 사진 10
+  { id: 12, artistName: "서지안", title: "해 질 녘의 수평선", image: "photo-sea-dusk.jpg", category: "PHOTOGRAPHY", medium: "아카이벌 피그먼트 프린트 (에디션 2/5)", size: [80, 100], year: 2025, stage: "ONGOING", startPrice: 450_000, estimatedPrice: 900_000, bids: 4, endInDays: 2 },
+  { id: 13, artistName: "류태오", title: "안개의 층위 #3", image: "photo-misty-mountains.jpg", category: "PHOTOGRAPHY", medium: "아카이벌 피그먼트 프린트 (에디션 1/7)", size: [60, 75], year: 2024, stage: "PREVIEW", startPrice: 380_000, estimatedPrice: 700_000 },
+  { id: 14, artistName: "문가을", title: "모래의 시간", image: "photo-dunes.jpg", category: "PHOTOGRAPHY", medium: "C-프린트 (에디션 3/5)", size: [80, 100], year: 2023, stage: "ONGOING", startPrice: 520_000, estimatedPrice: 1_000_000, bids: 7, endInDays: 4 },
+  { id: 15, artistName: "윤채린", title: "도시의 잔광", image: "photo-city-bokeh.jpg", category: "PHOTOGRAPHY", medium: "아카이벌 피그먼트 프린트 (에디션 4/10)", size: [50, 62.5], year: 2025, stage: "SCHEDULED", startPrice: 300_000, estimatedPrice: 600_000 },
+  { id: 16, artistName: "백승호", title: "겨울, 침묵", image: "photo-snow-trees.jpg", category: "PHOTOGRAPHY", medium: "젤라틴 실버 프린트 (에디션 2/5)", size: [60, 75], year: 2024, stage: "ONGOING", startPrice: 350_000, estimatedPrice: 650_000, bids: 2, endInDays: 6 },
+  { id: 17, artistName: "신다온", title: "오후의 그림자", image: "photo-architecture.jpg", category: "PHOTOGRAPHY", medium: "아카이벌 피그먼트 프린트 (에디션 1/5)", size: [50, 62.5], year: 2025, stage: "PREVIEW", startPrice: 280_000, estimatedPrice: 500_000 },
+  { id: 18, artistName: "장하람", title: "빛이 머무는 숲", image: "photo-forest-fog.jpg", category: "PHOTOGRAPHY", medium: "C-프린트 (에디션 5/7)", size: [80, 100], year: 2024, stage: "CLOSED", startPrice: 600_000, estimatedPrice: 1_100_000, bids: 9 },
+  { id: 19, artistName: "권우진", title: "북쪽의 밤", image: "photo-aurora.jpg", category: "PHOTOGRAPHY", medium: "아카이벌 피그먼트 프린트 (에디션 1/3)", size: [100, 125], year: 2023, stage: "ONGOING", startPrice: 900_000, estimatedPrice: 1_800_000, bids: 5, endInDays: 1 },
+  { id: 20, artistName: "남궁별", title: "호수에 비친 저녁", image: "photo-lake-reflection.jpg", category: "PHOTOGRAPHY", medium: "아카이벌 피그먼트 프린트 (에디션 2/10)", size: [60, 75], year: 2025, stage: "SCHEDULED", startPrice: 400_000, estimatedPrice: 750_000 },
+  { id: 21, artistName: "홍예서", title: "비 오는 창가", image: "photo-rain-window.jpg", category: "PHOTOGRAPHY", medium: "아카이벌 피그먼트 프린트 (에디션 6/10)", size: [40, 50], year: 2025, stage: "PREVIEW", startPrice: 250_000, estimatedPrice: 450_000 },
+
+  // 조각 10
+  { id: 22, artistName: "김태린", title: "매듭", image: "sc-bronze-knot.jpg", model: "sc-bronze-knot.glb", category: "SCULPTURE", medium: "브론즈", size: [38, 40, 30], year: 2024, stage: "ONGOING", startPrice: 3_500_000, estimatedPrice: 6_000_000, bids: 4, endInDays: 5 },
+  { id: 23, artistName: "이도윤", title: "균형의 탑", image: "sc-stacked-stones.jpg", model: "sc-stacked-stones.glb", category: "SCULPTURE", medium: "자연석", size: [33, 62, 38], year: 2025, stage: "PREVIEW", startPrice: 1_800_000, estimatedPrice: 3_000_000 },
+  { id: 24, artistName: "정아름", title: "비틀린 기둥", image: "sc-marble-twist.jpg", model: "sc-marble-twist.glb", category: "SCULPTURE", medium: "대리석", size: [32, 120, 32], year: 2023, stage: "SCHEDULED", startPrice: 4_200_000, estimatedPrice: 7_000_000 },
+  { id: 25, artistName: "조현우", title: "반사하는 정원", image: "sc-steel-spheres.jpg", model: "sc-steel-spheres.glb", category: "SCULPTURE", medium: "스테인리스 스틸", size: [66, 40, 60], year: 2025, stage: "ONGOING", startPrice: 2_600_000, estimatedPrice: 4_500_000, bids: 3, endInDays: 3 },
+  { id: 26, artistName: "배소율", title: "서 있는 사람", image: "sc-thin-figure.jpg", model: "sc-thin-figure.glb", category: "SCULPTURE", medium: "브론즈", size: [18, 92, 14], year: 2024, stage: "CLOSED", startPrice: 2_200_000, estimatedPrice: 3_500_000, bids: 6 },
+  { id: 27, artistName: "임재석", title: "붉은 아치", image: "sc-red-arc.jpg", model: "sc-red-arc.glb", category: "SCULPTURE", medium: "철에 우레탄 도장", size: [110, 60, 69], year: 2025, stage: "PREVIEW", startPrice: 3_000_000, estimatedPrice: 5_000_000 },
+  { id: 28, artistName: "황보은", title: "쌓인 시간", image: "sc-wood-totem.jpg", model: "sc-wood-totem.glb", category: "SCULPTURE", medium: "느티나무", size: [31, 95, 31], year: 2024, stage: "ONGOING", startPrice: 1_400_000, estimatedPrice: 2_400_000, bids: 2, endInDays: 6 },
+  { id: 29, artistName: "송지후", title: "흰 물결", image: "sc-white-wave.jpg", model: "sc-white-wave.glb", category: "SCULPTURE", medium: "레진에 도장", size: [50, 55, 31], year: 2025, stage: "SCHEDULED", startPrice: 1_900_000, estimatedPrice: 3_200_000 },
+  { id: 30, artistName: "차민서", title: "흩어진 정육면체", image: "sc-fragment-cube.jpg", model: "sc-fragment-cube.glb", category: "SCULPTURE", medium: "콘크리트", size: [69, 50, 71], year: 2023, stage: "PREVIEW", startPrice: 1_600_000, estimatedPrice: 2_800_000 },
+  { id: 31, artistName: "유하진", title: "결정", image: "sc-glass-crystal.jpg", model: "sc-glass-crystal.glb", category: "SCULPTURE", medium: "캐스팅 유리", size: [25, 24, 26], year: 2025, stage: "ONGOING", startPrice: 2_000_000, estimatedPrice: 3_600_000, bids: 5, endInDays: 2 },
+
+  // 공예 10
+  { id: 32, artistName: "노은재", title: "백자 달항아리", image: "cr-moon-jar.jpg", model: "cr-moon-jar.glb", category: "CRAFT", medium: "백자", size: [42, 44, 42], year: 2024, stage: "ONGOING", startPrice: 2_800_000, estimatedPrice: 5_000_000, bids: 8, endInDays: 4 },
+  { id: 33, artistName: "구본결", title: "청자 매병", image: "cr-celadon.jpg", model: "cr-celadon.glb", category: "CRAFT", medium: "청자", size: [23, 38, 23], year: 2025, stage: "PREVIEW", startPrice: 1_700_000, estimatedPrice: 3_000_000 },
+  { id: 34, artistName: "탁서영", title: "분청 다완", image: "cr-buncheong-bowl.jpg", model: "cr-buncheong-bowl.glb", category: "CRAFT", medium: "분청사기", size: [19, 8, 19], year: 2025, stage: "ONGOING", startPrice: 350_000, estimatedPrice: 600_000, bids: 4, endInDays: 2 },
+  { id: 35, artistName: "피윤호", title: "흑유 화병", image: "cr-black-vase.jpg", model: "cr-black-vase.glb", category: "CRAFT", medium: "흑유 도자", size: [10, 34, 10], year: 2024, stage: "SCHEDULED", startPrice: 420_000, estimatedPrice: 800_000 },
+  { id: 36, artistName: "변다희", title: "느티나무 볼", image: "cr-wood-bowl.jpg", model: "cr-wood-bowl.glb", category: "CRAFT", medium: "느티나무에 옻칠", size: [38, 10, 38], year: 2025, stage: "PREVIEW", startPrice: 280_000, estimatedPrice: 500_000 },
+  { id: 37, artistName: "마준서", title: "방짜 유기 한 쌍", image: "cr-brass-bowl.jpg", model: "cr-brass-bowl.glb", category: "CRAFT", medium: "방짜유기", size: [40, 8, 31], year: 2024, stage: "ONGOING", startPrice: 480_000, estimatedPrice: 900_000, bids: 3, endInDays: 5 },
+  { id: 38, artistName: "석하윤", title: "푸른 숨", image: "cr-glass-vase.jpg", model: "cr-glass-vase.glb", category: "CRAFT", medium: "블로잉 유리", size: [12, 30, 12], year: 2025, stage: "CLOSED", startPrice: 380_000, estimatedPrice: 650_000, bids: 5 },
+  { id: 39, artistName: "양지석", title: "나전 함", image: "cr-lacquer-box.jpg", model: "cr-lacquer-box.glb", category: "CRAFT", medium: "나전칠기", size: [37, 11, 34], year: 2023, stage: "ONGOING", startPrice: 1_300_000, estimatedPrice: 2_200_000, bids: 2, endInDays: 3 },
+  { id: 40, artistName: "연보람", title: "짚 바구니", image: "cr-basket.jpg", model: "cr-basket.glb", category: "CRAFT", medium: "볏짚", size: [36, 22, 36], year: 2025, stage: "SCHEDULED", startPrice: 180_000, estimatedPrice: 320_000 },
+  { id: 41, artistName: "도채운", title: "세 개의 잔", image: "cr-terracotta-cups.jpg", model: "cr-terracotta-cups.glb", category: "CRAFT", medium: "테라코타 (3점 1조)", size: [27, 7, 14], year: 2025, stage: "PREVIEW", startPrice: 150_000, estimatedPrice: 280_000 },
+];
+
+// 시작가에 맞춰 호가 단위를 정함 (100만 원 미만 5만, 500만 원 미만 10만, 그 이상 20만)
+const bidUnitFor = (price: number) => (price < 1_000_000 ? 50_000 : price < 5_000_000 ? 100_000 : 200_000);
+
+// 간단한 씨앗 데이터(FictionalSeed)를 기존 화면이 쓰는 MockRecord 모양으로 펼쳐줌
+function toRecord(seed: FictionalSeed): MockRecord {
+  const minBidUnit = bidUnitFor(seed.startPrice);
+  const bids = seed.bids ?? 0;
+  const [widthCm, heightCm, depthCm = null] = seed.size;
+
+  // 단계별로 상태값과 시각을 정함 (기존 6개 작품의 규칙과 동일)
+  const stage = {
+    ONGOING: { artworkStatus: "IN_AUCTION", auctionStatus: "ONGOING", previewStart: at(-3 * DAY), previewEnd: at(-DAY), auctionEndAt: at((seed.endInDays ?? 3) * DAY) },
+    PREVIEW: { artworkStatus: "PREVIEW", auctionStatus: "PREVIEW", previewStart: at(-DAY), previewEnd: at(DAY), auctionEndAt: at(8 * DAY) },
+    SCHEDULED: { artworkStatus: "PREVIEW", auctionStatus: "SCHEDULED", previewStart: at(2 * DAY), previewEnd: at(4 * DAY), auctionEndAt: at(11 * DAY) },
+    CLOSED: { artworkStatus: "SOLD", auctionStatus: "CLOSED", previewStart: at(-9 * DAY), previewEnd: at(-7 * DAY), auctionEndAt: at(-DAY) },
+  }[seed.stage] as Pick<MockRecord, "artworkStatus" | "auctionStatus" | "previewStart" | "previewEnd" | "auctionEndAt">;
+
+  return {
+    id: seed.id,
+    saleType: "WEEKLY",
+    artistName: seed.artistName,
+    title: seed.title,
+    imageUrl: `/artworks/mock/${seed.image}`,
+    sourcePageUrl: null,
+    category: seed.category,
+    medium: seed.medium,
+    widthCm,
+    heightCm,
+    depthCm,
+    modelUrl: seed.model ? `/models/mock/${seed.model}` : null,
+    productionYear: seed.year,
+    ...stage,
+    startPrice: seed.startPrice,
+    estimatedPrice: seed.estimatedPrice,
+    currentPrice: seed.startPrice + bids * minBidUnit, // 입찰 1번마다 호가 단위만큼 올랐다고 가정
+    minBidUnit,
+    bidCount: bids,
+    viewerCount: seed.stage === "ONGOING" ? 8 + bids * 5 : 0,
+  };
+}
+
+// 실제 작품 6점 + 가상 작품 35점. 아래 목록/상세 데이터는 모두 이 배열에서 만들어짐
+const ALL_RECORDS: MockRecord[] = [...RECORDS, ...FICTIONAL_SEEDS.map(toRecord)];
+
+export const MOCK_ARTWORK_DETAILS: ArtworkDetail[] = ALL_RECORDS.map((record) => ({
   id: record.id,
   consignorId: 100 + record.id,
   artist: { id: 200 + record.id, name: record.artistName, profileImageUrl: null },
@@ -116,21 +236,27 @@ export const MOCK_ARTWORK_DETAILS: ArtworkDetail[] = RECORDS.map((record) => ({
   medium: record.medium,
   widthCm: record.widthCm,
   heightCm: record.heightCm,
-  depthCm: null,
+  depthCm: record.depthCm ?? null,
   productionYear: record.productionYear,
   startPrice: record.startPrice,
   estimatedPrice: record.estimatedPrice,
   certificateUrl: null,
   imageUrl: record.imageUrl,
   status: record.artworkStatus,
-  media: [{ id: record.id, mediaType: "PHOTO", url: record.imageUrl, sourceUrl: null, sortOrder: 0 }],
+  media: [
+    { id: record.id, mediaType: "PHOTO", url: record.imageUrl, sourceUrl: null, sortOrder: 0 },
+    // 3D 모델이 있는 작품만 MODEL_3D 미디어를 추가 → 상세의 "3D로 보기" 버튼과 뷰어가 이걸 씀
+    ...(record.modelUrl
+      ? [{ id: 1000 + record.id, mediaType: "MODEL_3D" as const, url: record.modelUrl, sourceUrl: null, sortOrder: 1 }]
+      : []),
+  ],
   createdAt: at(-7 * DAY),
   updatedAt: at(-DAY),
 }));
 
-export type MockLot = Lot & { saleType: MockSaleType; sourcePageUrl: string };
+export type MockLot = Lot & { saleType: MockSaleType; sourcePageUrl: string | null };
 
-export const MOCK_LOTS: MockLot[] = RECORDS.map((record) => ({
+export const MOCK_LOTS: MockLot[] = ALL_RECORDS.map((record) => ({
   artwork: {
     id: record.id,
     consignorId: 100 + record.id,
