@@ -14,6 +14,9 @@ declare global {
         "camera-controls"?: boolean;
         "auto-rotate"?: boolean;
         poster?: string;
+        scale?: string;
+        "camera-orbit"?: string;
+        "shadow-intensity"?: string;
       };
     }
   }
