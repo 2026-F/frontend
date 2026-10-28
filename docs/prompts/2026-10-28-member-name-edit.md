@@ -3,7 +3,7 @@
 - 작성일: 2026-10-28
 - 프론트 이슈: [frontend#38](https://github.com/2026-F/frontend/issues/38)
 - 백엔드: [Artbid#34](https://github.com/2026-F/Artbid/issues/34), [PR #72](https://github.com/2026-F/Artbid/pull/72)
-- 프론트 PR: 생성 진행 중
+- 프론트 PR: [frontend#39](https://github.com/2026-F/frontend/pull/39) (초안, develop 대상)
 
 ## 목적
 
@@ -97,6 +97,7 @@
 
 ## 남은 작업
 
-- 사용자 요청에 따라 커밋과 푸시 후 develop 대상 PR을 생성한다. 병합은 팀 검토 후 진행한다.
+- 사용자 요청으로 커밋과 푸시, develop 대상 초안 PR #39 생성 완료. 병합은 팀 검토 후 진행한다.
+- 최종 UI의 가상 회원 스크린샷을 재촬영해 PR에 첨부한다. 기존 캡처는 UI 변경 전 상태이므로 첨부하지 않았다.
 - 이메일, 휴대폰, 배송지 저장 API 및 인증, 주소 입력 정책 확정 후 연동
 - 후속 로드맵: 역할 조회 실패 처리, 판매자, 관리자 계정 준비 및 화면 구현
