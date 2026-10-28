@@ -113,16 +113,24 @@ export async function fetchMember(memberId: number): Promise<Member> {
   return res.data;
 }
 
+/** 본인 이름 수정. 이메일과 역할은 변경하지 않는다. */
+export async function updateMember(memberId: number, request: { name: string }): Promise<Member> {
+  const res = await api.patch<Member>(`/api/members/${memberId}`, request);
+  return res.data;
+}
+
 /**
  * 에러를 화면에 보여줄 문구로 바꿔주는 도우미 함수
  * 백엔드 GlobalExceptionHandler는 에러 메시지를 JSON이 아닌 "그냥 문자열"로 보내줌
  *   예) "이메일 또는 비밀번호가 올바르지 않습니다."
- * - axios 에러이고 응답 본문이 문자열이면 → 그 메시지를 그대로 사용
+ * - 문자열 응답과 회원 API의 { code, message } 응답을 지원
  * - 서버가 꺼져 있거나 네트워크 오류라 응답 자체가 없으면 → fallback(기본 문구) 사용
  */
 export function errorMessage(error: unknown, fallback: string): string {
-  if (axios.isAxiosError(error) && typeof error.response?.data === "string" && error.response.data) {
-    return error.response.data;
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (typeof data === "string" && data) return data;
+    if (data && typeof data.message === "string" && data.message) return data.message;
   }
   return fallback;
 }

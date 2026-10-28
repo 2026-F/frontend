@@ -80,14 +80,12 @@ export default function MyPage() {
             <p className="mt-1 text-xs text-[#c5c8bf]">{member.email}</p>
           </div>
         </div>
-        {/* 프로필 수정 API가 아직 없어서, 이 자리를 로그아웃 버튼으로 사용 */}
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="relative mt-6 flex h-11 w-full items-center justify-center rounded-[10px] border border-white/30 text-[13px] font-bold text-white transition-colors hover:bg-white/10"
+        <Link
+          href="/mypage/profile"
+          className="relative mt-6 flex h-11 w-full items-center justify-center rounded-[10px] border border-white/30 text-[13px] font-bold transition-colors hover:bg-white/10"
         >
-          로그아웃
-        </button>
+          회원정보 관리
+        </Link>
       </section>
 
       <section
@@ -144,6 +142,7 @@ export default function MyPage() {
 
       <button
         type="button"
+        onClick={handleLogout}
         className="mt-9 w-full rounded-[10px] border border-[#d9dcd2] px-4 py-3 text-[13px] font-semibold text-[#73756f]"
       >
         로그아웃
