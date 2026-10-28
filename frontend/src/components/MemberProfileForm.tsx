@@ -21,10 +21,6 @@ export default function MemberProfileForm({
   const [name, setName] = useState('');
   const [savedName, setSavedName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-  const [address, setAddress] = useState('');
-  const [addressDetail, setAddressDetail] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -258,7 +254,7 @@ export default function MemberProfileForm({
                 type="email"
                 autoComplete="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                readOnly
                 maxLength={254}
                 className={inputClass}
               />
@@ -273,8 +269,7 @@ export default function MemberProfileForm({
                 type="tel"
                 autoComplete="tel"
                 placeholder="010-0000-0000"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
+                disabled
                 maxLength={30}
                 className={inputClass}
               />
@@ -291,8 +286,7 @@ export default function MemberProfileForm({
                   autoComplete="postal-code"
                   inputMode="numeric"
                   placeholder="우편번호 입력"
-                  value={postalCode}
-                  onChange={(event) => setPostalCode(event.target.value)}
+                  disabled
                   maxLength={10}
                   className={inputClass}
                 />
@@ -306,8 +300,7 @@ export default function MemberProfileForm({
                   name="address"
                   autoComplete="address-line1"
                   placeholder="도로명 또는 지번 주소"
-                  value={address}
-                  onChange={(event) => setAddress(event.target.value)}
+                  disabled
                   maxLength={200}
                   className={inputClass}
                 />
@@ -321,8 +314,7 @@ export default function MemberProfileForm({
                   name="addressDetail"
                   autoComplete="address-line2"
                   placeholder="동·호수 등 상세 주소"
-                  value={addressDetail}
-                  onChange={(event) => setAddressDetail(event.target.value)}
+                  disabled
                   maxLength={200}
                   className={inputClass}
                 />
