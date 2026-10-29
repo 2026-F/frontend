@@ -1,6 +1,10 @@
 import axios from "axios";
 import type {
+  Artist,
+  ArtistCreateRequest,
+  ArtistPageResponse,
   Artwork,
+  ArtworkCreateRequest,
   ArtworkDetail,
   Auction,
   BidResult,
@@ -62,6 +66,31 @@ export async function fetchArtworks(params?: { keyword?: string; page?: number; 
 
 export async function fetchArtworkDetail(artworkId: number): Promise<ArtworkDetail> {
   const res = await api.get<ArtworkDetail>(`/api/artworks/${artworkId}`);
+  return res.data;
+}
+
+// -----------------------------------------------------------------------
+// 작가(Artist) 검색/등록 — 작품 등록 화면에서 "기존 작가 선택" 또는 "새 작가 등록"에 씀
+// -----------------------------------------------------------------------
+
+/** keyword로 작가를 검색. keyword를 비우면 전체 목록(최신순)을 돌려준다. */
+export async function fetchArtists(params?: { keyword?: string; page?: number; size?: number }): Promise<ArtistPageResponse> {
+  const res = await api.get<ArtistPageResponse>("/api/artists", { params });
+  return res.data;
+}
+
+export async function createArtist(request: ArtistCreateRequest): Promise<Artist> {
+  const res = await api.post<Artist>("/api/artists", request);
+  return res.data;
+}
+
+// -----------------------------------------------------------------------
+// 작품 등록 — POST /api/artworks
+// 성공하면 생성된 작품(ArtworkDetail, id 포함)을 돌려준다.
+// 등록 직후 상태는 PENDING_REVIEW라 어드민 승인 전까지 공개 목록에는 안 보인다.
+// -----------------------------------------------------------------------
+export async function createArtwork(request: ArtworkCreateRequest): Promise<ArtworkDetail> {
+  const res = await api.post<ArtworkDetail>("/api/artworks", request);
   return res.data;
 }
 

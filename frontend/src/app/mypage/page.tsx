@@ -104,10 +104,16 @@ export default function MyPage() {
 
       <nav aria-label="마이페이지 메뉴" className="mt-7">
         {member.role === "CONSIGNOR" && (
-          <Link href="/mypage/seller" className="flex min-h-[70px] items-center justify-between border-b border-[#dedfd9] text-[16px] font-bold">
-            판매자 프로필 관리
-            <span className="text-[25px] font-normal" aria-hidden="true">›</span>
-          </Link>
+          <>
+            <Link href="/mypage/seller" className="flex min-h-[70px] items-center justify-between border-b border-[#dedfd9] text-[16px] font-bold">
+              판매자 프로필 관리
+              <span className="text-[25px] font-normal" aria-hidden="true">›</span>
+            </Link>
+            <Link href="/mypage/seller/artworks/new" className="flex min-h-[70px] items-center justify-between border-b border-[#dedfd9] text-[16px] font-bold">
+              작품 등록
+              <span className="text-[25px] font-normal" aria-hidden="true">›</span>
+            </Link>
+          </>
         )}
         {MENU.map((label, index) => (
           <Link
