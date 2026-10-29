@@ -1,6 +1,10 @@
 import { getLots } from "@/lib/lots";
 import AuctionListClient from "@/components/AuctionListClient";
 
+// 작품 등록/승인/경매 상태가 실시간으로 바뀌는 페이지라, 빌드 시점 정적 캐싱 없이
+// 요청마다 백엔드에서 새로 가져오게 한다 (app/page.tsx 홈과 동일한 패턴).
+export const dynamic = "force-dynamic";
+
 export default async function AuctionsPage() {
   const lots = await getLots();
 
