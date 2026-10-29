@@ -18,14 +18,18 @@ interface CapturedImage {
   url: string;
 }
 
-// 그림(캔버스)은 정면에서, 입체 모델은 살짝 비스듬히 시작
-const initialOrbitOf = (source: ModelSource) => (source.kind === "canvas" ? "0deg 90deg auto" : "20deg 80deg auto");
 // model-viewer 기본값은 처음 거리보다 멀어질 수 없어 작게 줄일 수가 없음 → 4배까지 멀어지게 허용
 const MAX_CAMERA_ORBIT = "auto auto 420%";
-// auto 거리는 이상 거리의 105%
+// auto 거리는 이상 거리의 105%. 크기 1 = 화면을 꽉 채우는 거리
 const AUTO_RADIUS_PERCENT = 105;
 const MIN_SIZE = 0.25;
 const MAX_SIZE = 2.5;
+// 처음부터 꽉 차면 벽에 건 느낌이 안 나서 조금 작게 시작
+const INITIAL_SIZE = 0.6;
+const radiusOf = (size: number) => `${(AUTO_RADIUS_PERCENT / size).toFixed(1)}%`;
+// 그림(캔버스)은 정면에서, 입체 모델은 살짝 비스듬히 시작
+const initialOrbitOf = (source: ModelSource) =>
+  source.kind === "canvas" ? `0deg 90deg ${radiusOf(INITIAL_SIZE)}` : `20deg 80deg ${radiusOf(INITIAL_SIZE)}`;
 
 /**
  * 카메라 화면이나 불러온 사진을 배경으로 깔고, 그 위에 작품 3D 모델을 띄워 보는 화면
@@ -44,7 +48,7 @@ export default function Live3DPlacement({ source, artworkTitle }: Live3DPlacemen
   const stageRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<ModelViewerElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [size, setSize] = useState(1);
+  const [size, setSize] = useState(INITIAL_SIZE);
   const [photoError, setPhotoError] = useState<string | null>(null);
 
   // 불러온 사진 URL은 바꾸거나 화면을 떠날 때 해제
@@ -76,13 +80,13 @@ export default function Live3DPlacement({ source, artworkTitle }: Live3DPlacemen
     if (!viewer) return;
     // 크기 = 카메라 거리의 역수. 지금 보는 방향은 그대로 두고 거리만 바꿈
     const { theta, phi } = viewer.getCameraOrbit();
-    viewer.cameraOrbit = `${theta}rad ${phi}rad ${AUTO_RADIUS_PERCENT / value}%`;
+    viewer.cameraOrbit = `${theta}rad ${phi}rad ${radiusOf(value)}`;
   };
 
   const handleReset = () => {
     const viewer = viewerRef.current;
     if (!viewer) return;
-    setSize(1);
+    setSize(INITIAL_SIZE);
     viewer.cameraOrbit = initialOrbitOf(source);
     viewer.cameraTarget = "auto auto auto";
     viewer.jumpCameraToGoal();
