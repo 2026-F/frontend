@@ -8,7 +8,7 @@
 import axios from 'axios';
 import { useState } from 'react';
 import type { AdminRow } from '@/app/admin/page';
-import { approveArtwork, createAuction, errorMessage, rejectArtwork, updateAuctionStatus } from '@/lib/api';
+import { approveArtwork, createAuction, errorMessage, rejectArtwork, unpublishArtwork, updateAuctionStatus } from '@/lib/api';
 import type { ArtworkStatus, AuctionStatus } from '@/types';
 
 const ARTWORK_STATUS_LABELS: Record<ArtworkStatus, string> = {
@@ -130,6 +130,19 @@ export default function AdminArtworkRow({
       onChange({ artwork: { ...artwork, auctionId: created.id }, auction: created });
     } catch (cause) {
       setError(errorMessage(cause, '경매 생성에 실패했습니다.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await unpublishArtwork(artwork.id);
+      onChange({ artwork: { ...artwork, status: 'REJECTED' }, auction });
+    } catch (cause) {
+      setError(errorMessage(cause, '작품을 내리지 못했습니다.'));
     } finally {
       setBusy(false);
     }
@@ -312,6 +325,17 @@ export default function AdminArtworkRow({
             변경
           </button>
         </div>
+      )}
+
+      {(artwork.status === 'PREVIEW' || artwork.status === 'IN_AUCTION') && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={handleUnpublish}
+          className="mt-3 h-10 w-full rounded-[8px] border border-[#c13b32] text-[13px] font-bold text-[#c13b32] disabled:opacity-50"
+        >
+          작품 내리기 (비공개로 전환)
+        </button>
       )}
 
       {error && (

@@ -109,6 +109,11 @@ export async function rejectArtwork(artworkId: number): Promise<void> {
   await api.post(`/api/artworks/${artworkId}/reject`);
 }
 
+/** 이미 공개된(PREVIEW/IN_AUCTION) 작품을 다시 비공개(REJECTED)로 내린다. */
+export async function unpublishArtwork(artworkId: number): Promise<void> {
+  await api.post(`/api/artworks/${artworkId}/unpublish`);
+}
+
 /** 작품에 경매를 새로 연다. 성공하면 생성된 경매(Auction, id 포함)를 돌려준다. */
 export async function createAuction(request: AuctionCreateRequest): Promise<Auction> {
   const res = await api.post<Auction>("/api/auctions", request);
