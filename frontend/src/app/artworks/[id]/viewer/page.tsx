@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import ArtworkModelViewer from "@/components/artwork-model/ArtworkModelViewer";
 import { fetchArtworkDetail } from "@/lib/api";
@@ -57,6 +58,14 @@ export default function ArtworkViewerPage() {
               cameraOrbit={source.kind === "canvas" ? "25deg 80deg auto" : source.kind === "model" ? "25deg 75deg auto" : "0deg 75deg 200%"}
             />
           </div>
+          {source.kind !== "fallback" && (
+            <Link
+              href={`/artworks/${artworkId}/preview`}
+              className="mt-1 flex h-11 w-full items-center justify-center rounded-lg border border-ink-700 text-sm font-semibold text-cream"
+            >
+              이 작품 내 공간에 걸어보기
+            </Link>
+          )}
           {source.kind === "canvas" && (
             <p className="text-xs text-ink-500">* 작품 사진을 실제 크기 비율의 캔버스에 입혀 보여주는 미리보기입니다.</p>
           )}

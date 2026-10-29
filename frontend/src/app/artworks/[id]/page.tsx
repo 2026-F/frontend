@@ -132,7 +132,8 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
           </Link>
         )}
 
-        {primaryImage && (
+        {/* 3D 모델로 배치하므로 3D로 볼 수 있는 작품에만 노출 */}
+        {canView3d && (
           <Link href={`/artworks/${artwork.id}/preview`} className={`${canBid ? "mt-2" : "mt-4"} flex h-11 w-full items-center justify-center rounded-[7px] border border-[#dfe0da] bg-white text-[12px] font-semibold text-[#111111] transition active:scale-[0.99]`}>
             내 공간에 걸어보기
           </Link>
