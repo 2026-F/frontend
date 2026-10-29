@@ -115,6 +115,12 @@ export default function MyPage() {
             </Link>
           </>
         )}
+        {member.role === "ADMIN" && (
+          <Link href="/admin" className="flex min-h-[70px] items-center justify-between border-b border-[#dedfd9] text-[16px] font-bold">
+            경매 상태 관리
+            <span className="text-[25px] font-normal" aria-hidden="true">›</span>
+          </Link>
+        )}
         {MENU.map((label, index) => (
           <Link
             key={label}

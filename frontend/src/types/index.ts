@@ -252,3 +252,16 @@ export interface ArtworkCreateRequest {
   certificateUrl: string;
   imageUrl: string;
 }
+
+// ---------------------------------------------------------------------
+// 경매 생성 요청 — POST /api/auctions (어드민 경매 상태 관리 화면에서 사용)
+// 백엔드 AuctionController.AuctionCreateRequest 레코드와 필드명이 같아야 한다.
+// ---------------------------------------------------------------------
+export interface AuctionCreateRequest {
+  artworkId: number;
+  startPrice: number;
+  minBidUnit: number;
+  previewStart: string;
+  previewEnd: string;
+  auctionEndAt: string;
+}
