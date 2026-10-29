@@ -16,6 +16,8 @@ declare global {
         poster?: string;
         scale?: string;
         "camera-orbit"?: string;
+        "min-camera-orbit"?: string;
+        "max-camera-orbit"?: string;
         "shadow-intensity"?: string;
         "touch-action"?: string;
         "interaction-prompt"?: string;

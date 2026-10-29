@@ -28,6 +28,9 @@ interface ArtworkModelViewerProps {
   alt: string;
   /** 처음 카메라 각도 (model-viewer camera-orbit) */
   cameraOrbit?: string;
+  /** 카메라 이동 범위 (model-viewer min/max-camera-orbit). 멀리 빼서 작게 보려면 max 반지름을 늘린다 */
+  minCameraOrbit?: string;
+  maxCameraOrbit?: string;
   autoRotate?: boolean;
   /** 바닥 그림자 진하기. 벽에 거는 그림은 0 */
   shadowIntensity?: number;
@@ -42,7 +45,7 @@ interface ArtworkModelViewerProps {
  * ref로 model-viewer 엘리먼트(사진 찍기, 카메라 조작용)를 받을 수 있다.
  */
 const ArtworkModelViewer = forwardRef<ModelViewerElement | null, ArtworkModelViewerProps>(function ArtworkModelViewer(
-  { source, alt, cameraOrbit, autoRotate = false, shadowIntensity = 0.6, captureTouch = false, className },
+  { source, alt, cameraOrbit, minCameraOrbit, maxCameraOrbit, autoRotate = false, shadowIntensity = 0.6, captureTouch = false, className },
   ref,
 ) {
   const viewerRef = useRef<ModelViewerElement | null>(null);
@@ -88,6 +91,8 @@ const ArtworkModelViewer = forwardRef<ModelViewerElement | null, ArtworkModelVie
       auto-rotate={autoRotate || undefined}
       scale={source.kind === "canvas" ? source.scale : undefined}
       camera-orbit={cameraOrbit}
+      min-camera-orbit={minCameraOrbit}
+      max-camera-orbit={maxCameraOrbit}
       shadow-intensity={String(shadowIntensity)}
       touch-action={captureTouch ? "none" : undefined}
       interaction-prompt="none"
