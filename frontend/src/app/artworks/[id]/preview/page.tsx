@@ -6,6 +6,9 @@ import { fetchArtworkDetail } from "@/lib/api";
 import { getMockArtworkDetail } from "@/lib/mock";
 import type { ArtworkDetail } from "@/types";
 
+// 작품 상세 페이지와 같은 이유로 정적 캐싱을 끈다.
+export const dynamic = "force-dynamic";
+
 type ArtworkSpacePreviewPageProps = {
   params: { id: string };
 };
