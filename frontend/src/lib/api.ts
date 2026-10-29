@@ -10,6 +10,9 @@ import type {
   PageResponse,
   PresignedUploadResponse,
   StageToken,
+  SellerProfile,
+  SellerProfileRegisterRequest,
+  SellerProfileUpdateRequest,
 } from "@/types";
 
 // 서버(Next.js 서버 컴포넌트/SSR)와 브라우저(클라이언트)는 baseURL을 다르게 써야 한다.
@@ -112,6 +115,21 @@ export async function fetchMember(memberId: number, accessToken?: string): Promi
   const res = await api.get<Member>(`/api/members/${memberId}`, {
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
   });
+  return res.data;
+}
+
+export async function fetchSellerProfile(memberId: number): Promise<SellerProfile> {
+  const res = await api.get<SellerProfile>(`/api/sellers/${memberId}`);
+  return res.data;
+}
+
+export async function registerSellerProfile(request: SellerProfileRegisterRequest): Promise<SellerProfile> {
+  const res = await api.post<SellerProfile>("/api/sellers", request);
+  return res.data;
+}
+
+export async function updateSellerProfile(memberId: number, request: SellerProfileUpdateRequest): Promise<SellerProfile> {
+  const res = await api.patch<SellerProfile>(`/api/sellers/${memberId}`, request);
   return res.data;
 }
 
