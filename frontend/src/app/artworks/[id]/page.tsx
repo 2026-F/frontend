@@ -7,6 +7,10 @@ import { canShowIn3d } from "@/lib/artworkModel";
 import { formatWon } from "@/lib/format";
 import type { ArtworkDetail, Auction } from "@/types";
 
+// 입찰가/작품 상태가 실시간으로 바뀌는 페이지라, 빌드 시점 정적 캐싱 없이
+// 요청마다 백엔드에서 새로 가져오게 한다 (app/page.tsx 홈과 동일한 패턴).
+export const dynamic = "force-dynamic";
+
 type ArtworkDetailPageProps = {
   params: { id: string };
   searchParams?: { auctionId?: string };
