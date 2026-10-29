@@ -109,6 +109,22 @@ export interface Member {
   role: "CONSIGNOR" | "BIDDER" | "ADMIN";
 }
 
+export interface SellerProfile {
+  id: number;
+  memberId: number;
+  shopName: string;
+  introduction: string | null;
+  profileImageUrl: string | null;
+}
+
+export interface SellerProfileRegisterRequest {
+  shopName: string;
+  introduction: string;
+  profileImageUrl: string;
+}
+
+export type SellerProfileUpdateRequest = Partial<SellerProfileRegisterRequest>;
+
 // GET/POST /api/auctions/{auctionId}/stream 응답. AWS IVS Real-Time(스테이지) 기준이라
 // RTMP/HLS 시절의 streamKey·ingestEndpoint·playbackUrl은 없다 — stageArn은 AWS 계정 정보가
 // 담긴 내부 식별자라 응답에서도 빠진다. 대신 스테이지 참여는 StageToken으로 한다.

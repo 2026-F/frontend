@@ -80,14 +80,12 @@ export default function MyPage() {
             <p className="mt-1 text-xs text-[#c5c8bf]">{member.email}</p>
           </div>
         </div>
-        {/* 프로필 수정 API가 아직 없어서, 이 자리를 로그아웃 버튼으로 사용 */}
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="relative mt-6 flex h-11 w-full items-center justify-center rounded-[10px] border border-white/30 text-[13px] font-bold text-white transition-colors hover:bg-white/10"
+        <Link
+          href="/mypage/profile"
+          className="relative mt-6 flex h-11 w-full items-center justify-center rounded-[10px] border border-white/30 text-[13px] font-bold transition-colors hover:bg-white/10"
         >
-          로그아웃
-        </button>
+          회원정보 관리
+        </Link>
       </section>
 
       <section
@@ -105,6 +103,12 @@ export default function MyPage() {
       </section>
 
       <nav aria-label="마이페이지 메뉴" className="mt-7">
+        {member.role === "CONSIGNOR" && (
+          <Link href="/mypage/seller" className="flex min-h-[70px] items-center justify-between border-b border-[#dedfd9] text-[16px] font-bold">
+            판매자 프로필 관리
+            <span className="text-[25px] font-normal" aria-hidden="true">›</span>
+          </Link>
+        )}
         {MENU.map((label, index) => (
           <Link
             key={label}
@@ -144,6 +148,7 @@ export default function MyPage() {
 
       <button
         type="button"
+        onClick={handleLogout}
         className="mt-9 w-full rounded-[10px] border border-[#d9dcd2] px-4 py-3 text-[13px] font-semibold text-[#73756f]"
       >
         로그아웃
