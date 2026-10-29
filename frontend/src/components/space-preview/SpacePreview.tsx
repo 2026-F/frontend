@@ -1,120 +1,58 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import LiveArtworkPlacement from "./LiveArtworkPlacement";
-import WallPhotoPicker, { type WallPhoto } from "./WallPhotoPicker";
+import { fetchModelMediaUrl, resolveModelSource, type ModelSource } from "@/lib/artworkModel";
+import type { ArtworkDetail } from "@/types";
+import Live3DPlacement from "./Live3DPlacement";
 
 interface SpacePreviewProps {
-  artworkTitle: string;
-  artworkImageUrl: string;
-  /** 작품 가로/세로 비율 (widthCm / heightCm) */
-  aspectRatio?: number;
+  artwork: ArtworkDetail;
   /** 화면에 보여줄 실제 크기 문구 (예: "60 × 80 cm") */
   dimensionsLabel?: string | null;
 }
 
-type BackgroundPhoto = { url: string; width: number; height: number };
-
 /**
  * '내 공간에 걸어보기' 화면
- * - 기본: 실시간 카메라 위에 작품 배치
- * - 카메라를 쓸 수 없거나 원하면: 앨범 사진 위에 작품 배치
+ * 카메라 화면이나 불러온 사진을 배경으로, 3D 뷰어와 같은 작품 모델을 띄워 배치한다.
+ * 실제 공간 인식이나 실측은 하지 않는다. 크기는 사용자가 맞춘다.
  */
-export default function SpacePreview({
-  artworkTitle,
-  artworkImageUrl,
-  aspectRatio,
-  dimensionsLabel,
-}: SpacePreviewProps) {
-  const [mode, setMode] = useState<"camera" | "album">("camera");
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [photo, setPhoto] = useState<BackgroundPhoto | null>(null);
+export default function SpacePreview({ artwork, dimensionsLabel }: SpacePreviewProps) {
+  // undefined: 확인 중, null: 3D로 보여줄 수 없음
+  const [source, setSource] = useState<ModelSource | null | undefined>(undefined);
 
-  // WallPhotoPicker는 화면에서 사라질 때 자기 미리보기 URL을 해제하므로,
-  // 배치 화면에서 쓸 URL은 여기서 따로 만들고 직접 해제함
   useEffect(() => {
-    return () => {
-      if (photo) URL.revokeObjectURL(photo.url);
+    let cancelled = false;
+    const load = async () => {
+      const modelUrl = await fetchModelMediaUrl(artwork.id);
+      const resolved = await resolveModelSource(artwork, { apiModelUrl: modelUrl });
+      if (!cancelled) setSource(resolved);
     };
-  }, [photo]);
-
-  const handlePhotoSelect = (selected: WallPhoto) => {
-    setPhoto({
-      url: URL.createObjectURL(selected.blob),
-      width: selected.width,
-      height: selected.height,
-    });
-  };
-
-  const switchToAlbum = () => {
-    setMode("album");
-    setPhoto(null);
-  };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [artwork]);
 
   return (
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-[18px] font-bold tracking-[-0.03em]">내 공간에 걸어보기</h1>
         <p className="mt-1 text-[12px] text-[#74756f]">
-          {artworkTitle}
+          {artwork.title}
           {dimensionsLabel && ` · 실제 크기 ${dimensionsLabel}`}
         </p>
         <p className="mt-2 text-[11px] leading-relaxed text-[#858680]">
-          작품을 손가락으로 끌어 옮기고, 두 손가락으로 크기를 맞춘 뒤 셔터를 눌러 저장하세요.
+          카메라나 벽 사진 위에서 작품을 돌리고 옮겨 크기를 맞춘 뒤 셔터를 눌러 저장하세요.
         </p>
       </div>
 
-      {mode === "camera" && (
-        <>
-          <LiveArtworkPlacement
-            artworkTitle={artworkTitle}
-            artworkImageUrl={artworkImageUrl}
-            aspectRatio={aspectRatio}
-            onCameraError={setCameraError}
-          />
-          <button
-            type="button"
-            onClick={switchToAlbum}
-            className={
-              cameraError
-                ? "w-full rounded-full bg-[#111111] px-4 py-3 text-[13px] font-semibold text-white"
-                : "self-center text-[12px] font-medium text-[#74756f] underline underline-offset-2"
-            }
-          >
-            {cameraError ? "앨범 사진으로 걸어보기" : "카메라 대신 앨범 사진으로 하기"}
-          </button>
-        </>
+      {source === undefined && <p className="text-[12px] text-[#74756f]">작품 모델을 준비하는 중...</p>}
+      {source === null && (
+        <p className="rounded-lg bg-[#f6f7f2] p-4 text-[12px] text-[#74756f]">
+          이 작품은 3D 모델이 없어 공간 미리보기를 할 수 없어요.
+        </p>
       )}
-
-      {mode === "album" && !photo && <WallPhotoPicker onSelect={handlePhotoSelect} />}
-
-      {mode === "album" && photo && (
-        <>
-          <LiveArtworkPlacement
-            artworkTitle={artworkTitle}
-            artworkImageUrl={artworkImageUrl}
-            aspectRatio={aspectRatio}
-            photo={photo}
-          />
-          <button
-            type="button"
-            onClick={() => setPhoto(null)}
-            className="self-center text-[12px] font-medium text-[#74756f] underline underline-offset-2"
-          >
-            다른 사진 선택
-          </button>
-        </>
-      )}
-
-      {mode === "album" && !cameraError && (
-        <button
-          type="button"
-          onClick={() => setMode("camera")}
-          className="self-center text-[12px] font-medium text-[#74756f] underline underline-offset-2"
-        >
-          카메라로 돌아가기
-        </button>
-      )}
+      {source && <Live3DPlacement source={source} artworkTitle={artwork.title} />}
     </div>
   );
 }

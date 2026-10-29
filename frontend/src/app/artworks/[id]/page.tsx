@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchArtworkDetail, fetchAuction } from "@/lib/api";
 import { getMockArtworkDetail, getMockLot } from "@/lib/mock";
+import { canShowIn3d } from "@/lib/artworkModel";
 import { formatWon } from "@/lib/format";
 import type { ArtworkDetail, Auction } from "@/types";
 
@@ -61,14 +62,10 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
   const videos = artwork.media
     .filter((item) => item.mediaType === "VIDEO")
     .sort((a, b) => a.sortOrder - b.sortOrder);
-  const hasModel = artwork.media.some(
-    (item) => item.mediaType === "MODEL_3D" && (item.url || item.sourceUrl),
-  );
   const primaryImage = photos[0]?.url ?? artwork.imageUrl;
   // 3D 모델이 있거나, 사진이 있는 평면 작품이면(캔버스에 입혀 보여줌) "3D로 보기" 버튼을 보여줌
   // 조각·공예처럼 입체 작품인데 모델이 없으면 액자 모양이 어색해서 버튼을 숨김
-  const isFlatWork = !artwork.category || !["SCULPTURE", "CRAFT"].includes(artwork.category);
-  const canView3d = hasModel || (Boolean(primaryImage) && isFlatWork);
+  const canView3d = canShowIn3d(artwork, primaryImage);
   const dimensions = dimensionsOf(artwork);
   const currentPrice = auction?.currentPrice ?? artwork.startPrice;
   const canBid = auction?.status === "ONGOING" || auction?.status === "EXTENDED";
@@ -135,7 +132,8 @@ export default async function ArtworkDetailPage({ params, searchParams }: Artwor
           </Link>
         )}
 
-        {primaryImage && (
+        {/* 3D 모델로 배치하므로 3D로 볼 수 있는 작품에만 노출 */}
+        {canView3d && (
           <Link href={`/artworks/${artwork.id}/preview`} className={`${canBid ? "mt-2" : "mt-4"} flex h-11 w-full items-center justify-center rounded-[7px] border border-[#dfe0da] bg-white text-[12px] font-semibold text-[#111111] transition active:scale-[0.99]`}>
             내 공간에 걸어보기
           </Link>
