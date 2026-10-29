@@ -271,7 +271,7 @@ export default function AdminArtworkRow({
               </div>
               <p className="text-[11px] leading-5 text-[#73756f]">
                 서버가 UTC로 동작 중이면 실제로는 9시간 차이가 날 수 있어요. 경매를 만든 뒤 바로 아래 상태를
-                "진행 중"으로 바꾸면 시간과 무관하게 즉시 입찰이 가능해집니다.
+                &ldquo;진행 중&rdquo;으로 바꾸면 시간과 무관하게 즉시 입찰이 가능해집니다.
               </p>
               <div className="flex gap-2">
                 <button
