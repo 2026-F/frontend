@@ -17,6 +17,9 @@ declare global {
         scale?: string;
         "camera-orbit"?: string;
         "shadow-intensity"?: string;
+        "touch-action"?: string;
+        "interaction-prompt"?: string;
+        class?: string;
       };
     }
   }
