@@ -199,3 +199,56 @@ export interface LoginResponse {
   // 로그인한 회원의 번호. 이름은 응답에 없어서 이 번호로 회원 정보를 따로 조회해야 함
   memberId: number;
 }
+
+// ---------------------------------------------------------------------
+// 작가(Artist) 관련 타입 — GET/POST /api/artists
+// ---------------------------------------------------------------------
+export interface Artist {
+  id: number;
+  name: string;
+  biography: string | null;
+  birthYear: number | null;
+  nationality: string | null;
+  profileImageUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ArtistPageResponse {
+  content: Artist[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface ArtistCreateRequest {
+  name: string;
+  biography: string;
+  birthYear: number | null;
+  nationality: string;
+  profileImageUrl: string;
+}
+
+// ---------------------------------------------------------------------
+// 작품 등록 요청 — POST /api/artworks
+// 백엔드 ArtworkCreateRequest.java 레코드와 필드명이 똑같아야 한다.
+// consignorId는 로그인한 판매자 본인의 memberId를 그대로 보낸다
+// (백엔드에 아직 인증 검증이 안 붙어 있음 — 이슈 #33, 프론트에서는 임의 입력을 받지 않고 항상 본인 id만 보냄)
+// ---------------------------------------------------------------------
+export interface ArtworkCreateRequest {
+  consignorId: number;
+  artistId: number;
+  title: string;
+  description: string;
+  category: ArtworkCategory;
+  medium: string;
+  widthCm: number | null;
+  heightCm: number | null;
+  depthCm: number | null;
+  productionYear: number | null;
+  startPrice: number;
+  estimatedPrice: number | null;
+  certificateUrl: string;
+  imageUrl: string;
+}
