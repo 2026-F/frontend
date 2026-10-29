@@ -65,6 +65,20 @@ export async function fetchArtworkDetail(artworkId: number): Promise<ArtworkDeta
   return res.data;
 }
 
+/** 관리자 심사 목록은 공개 목록과 달리 페이지 정보와 대기 상태 필터를 유지한다. */
+export async function fetchReviewArtworks(page: number): Promise<PageResponse<Artwork>> {
+  const res = await api.get<PageResponse<Artwork>>("/api/artworks", {
+    params: { status: "PENDING_REVIEW", sort: "latest", page, size: 20 },
+  });
+  return res.data;
+}
+
+export async function reviewArtwork(artworkId: number, action: "approve" | "reject", accessToken: string): Promise<void> {
+  await api.post(`/api/artworks/${artworkId}/${action}`, undefined, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
 // -----------------------------------------------------------------------
 // 인증(로그인/회원가입) 관련 API
 // 백엔드: member/controller/AuthController.java, MemberController.java
