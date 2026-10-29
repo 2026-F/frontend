@@ -27,14 +27,7 @@ export default async function ArtworkSpacePreviewPage({ params }: ArtworkSpacePr
     }
   }
 
-  const primaryImage =
-    artwork.media
-      .filter((item) => item.mediaType === "PHOTO" && item.url)
-      .sort((a, b) => a.sortOrder - b.sortOrder)[0]?.url ?? artwork.imageUrl;
-
-  // 실제 크기가 있으면 그 비율로, 없으면 이미지 원본 비율로 표시
   const hasSize = Boolean(artwork.widthCm && artwork.heightCm);
-  const aspectRatio = hasSize ? artwork.widthCm! / artwork.heightCm! : undefined;
   const dimensionsLabel = hasSize ? `${artwork.widthCm} × ${artwork.heightCm} cm` : null;
 
   return (
@@ -46,18 +39,7 @@ export default async function ArtworkSpacePreviewPage({ params }: ArtworkSpacePr
         ← 작품 상세로
       </Link>
 
-      {primaryImage ? (
-        <SpacePreview
-          artworkTitle={artwork.title}
-          artworkImageUrl={primaryImage}
-          aspectRatio={aspectRatio}
-          dimensionsLabel={dimensionsLabel}
-        />
-      ) : (
-        <p className="rounded-lg bg-[#f6f7f2] p-4 text-[12px] text-[#74756f]">
-          이 작품은 등록된 이미지가 없어 공간 미리보기를 할 수 없어요.
-        </p>
-      )}
+      <SpacePreview artwork={artwork} dimensionsLabel={dimensionsLabel} />
     </div>
   );
 }

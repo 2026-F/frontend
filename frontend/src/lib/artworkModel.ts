@@ -1,5 +1,6 @@
 // 작품을 3D로 보여줄 때 어떤 모델을 쓸지 정하는 공용 로직. 3D 뷰어와 '내 공간에 걸어보기'가 함께 쓴다.
-import type { ArtworkCategory, ArtworkDetail } from "@/types";
+import { api } from "@/lib/api";
+import type { ArtworkCategory, ArtworkDetail, ArtworkMedia } from "@/types";
 
 // 작품 전용 3D 스캔 모델이 없을 때 쓰는 "빈 캔버스" 모델.
 // 1×1×1 박스이고, 앞면 재질 이름이 "Painting"이라 여기에 작품 이미지를 텍스처로 붙인다.
@@ -80,4 +81,18 @@ export async function resolveModelSource(
 export function canShowIn3d(artwork: ArtworkDetail, primaryImage: string | null | undefined) {
   const hasModel = artwork.media.some((item) => item.mediaType === "MODEL_3D" && (item.url || item.sourceUrl));
   return hasModel || (Boolean(primaryImage) && isFlatCategory(artwork.category));
+}
+
+/** 미디어 API에서 작품 전용 3D 모델 주소를 찾는다. 실패하거나 없으면 null */
+export async function fetchModelMediaUrl(artworkId: number | string): Promise<string | null> {
+  try {
+    const res = await api.get<ArtworkMedia[]>(`/api/artworks/${artworkId}/media`);
+    return (
+      res.data
+        .filter((m) => m.mediaType === "MODEL_3D" && m.url)
+        .sort((a, b) => a.sortOrder - b.sortOrder)[0]?.url ?? null
+    );
+  } catch {
+    return null;
+  }
 }

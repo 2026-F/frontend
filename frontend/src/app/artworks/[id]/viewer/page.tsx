@@ -3,29 +3,16 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ArtworkModelViewer from "@/components/artwork-model/ArtworkModelViewer";
-import { api, fetchArtworkDetail } from "@/lib/api";
-import { resolveModelSource, type ModelSource } from "@/lib/artworkModel";
+import { fetchArtworkDetail } from "@/lib/api";
+import { fetchModelMediaUrl, resolveModelSource, type ModelSource } from "@/lib/artworkModel";
 import { getMockArtworkDetail } from "@/lib/mock";
-import type { ArtworkDetail, ArtworkMedia } from "@/types";
+import type { ArtworkDetail } from "@/types";
 
 async function loadArtwork(artworkId: number): Promise<ArtworkDetail | null> {
   try {
     return await fetchArtworkDetail(artworkId);
   } catch {
     return getMockArtworkDetail(artworkId) ?? null;
-  }
-}
-
-async function loadModelMedia(artworkId: string): Promise<ArtworkMedia | null> {
-  try {
-    const res = await api.get<ArtworkMedia[]>(`/api/artworks/${artworkId}/media`);
-    return (
-      res.data
-        .filter((m) => m.mediaType === "MODEL_3D" && m.url)
-        .sort((a, b) => a.sortOrder - b.sortOrder)[0] ?? null
-    );
-  } catch {
-    return null;
   }
 }
 
@@ -40,11 +27,11 @@ export default function ArtworkViewerPage() {
     let cancelled = false;
 
     const load = async () => {
-      const [model, artwork] = await Promise.all([loadModelMedia(artworkId), loadArtwork(Number(artworkId))]);
+      const [modelUrl, artwork] = await Promise.all([fetchModelMediaUrl(artworkId), loadArtwork(Number(artworkId))]);
       if (cancelled) return;
       setTitle(artwork?.title ?? null);
       // 모델 결정 규칙은 lib/artworkModel.ts 참고 (전용 모델 → 캔버스 + 사진 → 샘플)
-      const resolved = await resolveModelSource(artwork, { apiModelUrl: model?.url, allowFallback: true });
+      const resolved = await resolveModelSource(artwork, { apiModelUrl: modelUrl, allowFallback: true });
       if (!cancelled) setSource(resolved);
     };
 
