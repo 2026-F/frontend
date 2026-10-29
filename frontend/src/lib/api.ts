@@ -6,7 +6,10 @@ import type {
   Artwork,
   ArtworkCreateRequest,
   ArtworkDetail,
+  ArtworkStatus,
   Auction,
+  AuctionCreateRequest,
+  AuctionStatus,
   BidResult,
   Livestream,
   LoginResponse, // 추가: 로그인 응답 타입
@@ -59,7 +62,7 @@ api.interceptors.response.use(
 // -----------------------------------------------------------------------
 
 // GET /api/artworks는 페이지 응답(content, totalElements 등)을 준다. 기본으로 공개 상태(프리뷰·경매 중·낙찰) 작품만 온다.
-export async function fetchArtworks(params?: { keyword?: string; page?: number; size?: number }): Promise<Artwork[]> {
+export async function fetchArtworks(params?: { keyword?: string; status?: ArtworkStatus; page?: number; size?: number }): Promise<Artwork[]> {
   const res = await api.get<PageResponse<Artwork>>("/api/artworks", { params });
   return res.data.content;
 }
@@ -92,6 +95,33 @@ export async function createArtist(request: ArtistCreateRequest): Promise<Artist
 export async function createArtwork(request: ArtworkCreateRequest): Promise<ArtworkDetail> {
   const res = await api.post<ArtworkDetail>("/api/artworks", request);
   return res.data;
+}
+
+// -----------------------------------------------------------------------
+// 어드민: 작품 심사(승인/반려), 경매 생성/상태 변경
+// -----------------------------------------------------------------------
+
+export async function approveArtwork(artworkId: number): Promise<void> {
+  await api.post(`/api/artworks/${artworkId}/approve`);
+}
+
+export async function rejectArtwork(artworkId: number): Promise<void> {
+  await api.post(`/api/artworks/${artworkId}/reject`);
+}
+
+/** 작품에 경매를 새로 연다. 성공하면 생성된 경매(Auction, id 포함)를 돌려준다. */
+export async function createAuction(request: AuctionCreateRequest): Promise<Auction> {
+  const res = await api.post<Auction>("/api/auctions", request);
+  return res.data;
+}
+
+/**
+ * 경매 상태를 어드민이 직접 바꾼다 (예: PREVIEW -> ONGOING으로 열기).
+ * 지금은 시간에 맞춰 자동으로 상태가 바뀌는 기능이 없어서, 실제로 입찰이 가능하게 하려면
+ * 이 함수로 상태를 ONGOING으로 바꿔줘야 한다.
+ */
+export async function updateAuctionStatus(auctionId: number, status: AuctionStatus): Promise<void> {
+  await api.patch(`/api/auctions/${auctionId}/status`, { status });
 }
 
 // -----------------------------------------------------------------------
