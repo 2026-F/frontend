@@ -10,6 +10,9 @@ import type {
   PageResponse,
   PresignedUploadResponse,
   StageToken,
+  SellerProfile,
+  SellerProfileRegisterRequest,
+  SellerProfileUpdateRequest,
 } from "@/types";
 
 // 서버(Next.js 서버 컴포넌트/SSR)와 브라우저(클라이언트)는 baseURL을 다르게 써야 한다.
@@ -30,7 +33,7 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = window.localStorage.getItem("accessToken");
-    if (token) {
+    if (token && !config.headers.has("Authorization")) {
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
@@ -108,8 +111,25 @@ export async function logout(): Promise<void> {
  * GET /api/members/{id} → { id, email, name, role }
  * 로그인 응답에 이름이 없어서, 로그인 직후 memberId로 이걸 불러 화면에 쓸 이름을 받아옴
  */
-export async function fetchMember(memberId: number): Promise<Member> {
-  const res = await api.get<Member>(`/api/members/${memberId}`);
+export async function fetchMember(memberId: number, accessToken?: string): Promise<Member> {
+  const res = await api.get<Member>(`/api/members/${memberId}`, {
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+  });
+  return res.data;
+}
+
+export async function fetchSellerProfile(memberId: number): Promise<SellerProfile> {
+  const res = await api.get<SellerProfile>(`/api/sellers/${memberId}`);
+  return res.data;
+}
+
+export async function registerSellerProfile(request: SellerProfileRegisterRequest): Promise<SellerProfile> {
+  const res = await api.post<SellerProfile>("/api/sellers", request);
+  return res.data;
+}
+
+export async function updateSellerProfile(memberId: number, request: SellerProfileUpdateRequest): Promise<SellerProfile> {
+  const res = await api.patch<SellerProfile>(`/api/sellers/${memberId}`, request);
   return res.data;
 }
 
