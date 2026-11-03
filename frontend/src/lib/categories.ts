@@ -7,7 +7,7 @@ export const CATEGORY_LABELS: Record<ArtworkCategory, string> = {
   PHOTOGRAPHY: "사진",
   SCULPTURE: "조각",
   CRAFT: "공예",
-  MIXED_MEDIA: "회화",
+  MIXED_MEDIA: "혼합매체",
   DIGITAL: "디지털",
   OTHER: "기타",
 };
