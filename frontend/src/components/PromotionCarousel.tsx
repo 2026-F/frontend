@@ -52,7 +52,7 @@ export default function PromotionCarousel({ promotions }: { promotions: Promotio
             <div className="absolute inset-0 bg-[#07100c]/65" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-transparent to-transparent" />
             <div className="absolute inset-x-5 bottom-7 top-5 flex flex-col justify-center">
-              <p className="text-[10px] font-bold tracking-[0.16em] text-[#c8f887]">{promotion.eyebrow}</p>
+              <p className="text-[10px] font-bold tracking-[0.16em] text-[#c8f887]">{promotion.artworkIds.length === 0 ? "기획전 준비 중" : promotion.eyebrow}</p>
               <h1 className="mt-3 max-w-[285px] break-keep font-['Poppins',Pretendard,sans-serif] text-[27px] font-black leading-[1.17] tracking-[-0.055em] drop-shadow-md">{promotion.title}</h1>
               <p className="mt-2 max-w-[285px] break-keep text-xs leading-5 text-white/90">{promotion.subtitle}</p>
             </div>
