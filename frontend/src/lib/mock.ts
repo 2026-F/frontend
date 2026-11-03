@@ -107,6 +107,7 @@ const RECORDS: MockRecord[] = [
 ];
 
 export const MOCK_ARTWORK_DETAILS: ArtworkDetail[] = RECORDS.map((record) => ({
+  auctionId: record.id,
   id: record.id,
   consignorId: 100 + record.id,
   artist: { id: 200 + record.id, name: record.artistName, profileImageUrl: null },

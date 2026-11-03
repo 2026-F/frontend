@@ -44,6 +44,7 @@ export interface ArtworkDetailMedia {
 }
 
 export interface ArtworkDetail {
+  auctionId: number | null;
   id: number;
   consignorId: number | null;
   artist: ArtworkDetailArtist | null;
@@ -175,6 +176,11 @@ export interface Settlement {
 // 아래는 백엔드에 아직 없는 화면(경매 목록 등)을 채우기 위한 프런트 전용 뷰 모델입니다.
 // 실제 목록/상세 API가 생기면 이 타입은 지우고 위 백엔드 타입만으로 화면을 구성하면 됩니다.
 // ---------------------------------------------------------------------
+
+export type CatalogItem = Omit<Lot, "auction"> & {
+  auction: Auction | null;
+  auctionError?: string;
+};
 
 export interface Lot {
   artwork: Artwork;
