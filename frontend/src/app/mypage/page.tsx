@@ -1,21 +1,21 @@
-"use client";
+'use client';
 // ↑ 원래는 서버 컴포넌트였지만, 로그인 정보가 브라우저(localStorage)에 있어서
 //   그걸 읽으려면 클라이언트 컴포넌트로 바꿔야 함 ("use client"는 항상 파일 맨 첫 줄)
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { logout } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { logout } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 
 const STATS = [
-  { label: "입찰", value: 5 },
-  { label: "컬렉션", value: 1 },
-  { label: "관심", value: 24 },
+  { label: '입찰', value: '준비 중' },
+  { label: '컬렉션', value: '준비 중' },
+  { label: '관심', value: '준비 중' },
 ];
 
-const MENU = ["주문 및 배송 현황", "결제 대기", "환경 설정"];
-const RECENT_COLORS = ["#f4cee0", "#d8e2ff", "#d9e9d4"];
+const MENU = ['주문 및 배송 현황', '결제 대기', '환경 설정'];
+const RECENT_COLORS = ['#f4cee0', '#d8e2ff', '#d9e9d4'];
 
 export default function MyPage() {
   const router = useRouter();
@@ -36,7 +36,7 @@ export default function MyPage() {
     await logout().catch(() => {});
     // 저장된 토큰과 회원 정보 삭제 → 진짜 로그아웃은 이 부분
     clear();
-    router.push("/login");
+    router.push('/login');
   };
 
   // 아직 브라우저 준비 전이면 아무것도 안 그림 (아주 잠깐이라 거의 안 보임)
@@ -47,14 +47,19 @@ export default function MyPage() {
     return (
       <div className="px-5 pb-12 pt-16 text-center text-[#171717]">
         <p className="text-[18px] font-extrabold">로그인이 필요해요</p>
-        <p className="mt-2 text-[13px] text-[#73756f]">로그인하고 입찰 내역과 컬렉션을 확인하세요.</p>
+        <p className="mt-2 text-[13px] text-[#73756f]">
+          로그인하고 입찰 내역과 컬렉션을 확인하세요.
+        </p>
         <Link
           href="/login"
           className="mx-auto mt-6 flex h-12 w-full items-center justify-center rounded-[8px] bg-[#a8ff00] text-[14px] font-extrabold"
         >
           로그인
         </Link>
-        <Link href="/signup" className="mt-4 inline-block text-[13px] font-semibold text-[#73756f] underline">
+        <Link
+          href="/signup"
+          className="mt-4 inline-block text-[13px] font-semibold text-[#73756f] underline"
+        >
           회원가입
         </Link>
       </div>
@@ -72,7 +77,7 @@ export default function MyPage() {
         <div className="relative flex items-center gap-3">
           <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#b8f53d] text-[21px] font-black text-[#171717]">
             {/* 이름 첫 글자를 동그라미 아바타에 표시. 이름이 비어 있으면 "?" */}
-            {member.name?.[0] ?? "?"}
+            {member.name?.[0] ?? '?'}
           </div>
           <div className="min-w-0">
             {/* 하드코딩된 "김그림 님" 대신 실제 로그인한 회원 정보 */}
@@ -93,9 +98,15 @@ export default function MyPage() {
         className="mt-9 grid grid-cols-3 rounded-[18px] bg-[#f7f8f4] py-5 text-center"
       >
         {STATS.map((stat) => (
-          <button key={stat.label} type="button" disabled aria-label={`${stat.label} ${stat.value}건, 상세 화면 준비 중`} className="flex flex-col items-center justify-center text-center disabled:cursor-default">
+          <button
+            key={stat.label}
+            type="button"
+            disabled
+            aria-label={`${stat.label} ${stat.value}`}
+            className="flex flex-col items-center justify-center text-center disabled:cursor-default"
+          >
             <p className="text-[13px] font-semibold text-[#73756f]">{stat.label}</p>
-            <p className="mt-3 text-[25px] font-extrabold leading-none tracking-[-0.05em]">
+            <p className="mt-3 text-sm font-semibold leading-none tracking-[-0.05em]">
               {stat.value}
             </p>
           </button>
@@ -103,35 +114,49 @@ export default function MyPage() {
       </section>
 
       <nav aria-label="마이페이지 메뉴" className="mt-7">
-        {member.role === "CONSIGNOR" && (
+        {member.role === 'CONSIGNOR' && (
           <>
-            <Link href="/mypage/seller" className="flex min-h-[70px] items-center justify-between border-b border-[#dedfd9] text-[16px] font-bold">
+            <Link
+              href="/mypage/seller"
+              className="flex min-h-[70px] items-center justify-between border-b border-[#dedfd9] text-[16px] font-bold"
+            >
               판매자 프로필 관리
-              <span className="text-[25px] font-normal" aria-hidden="true">›</span>
+              <span className="text-[25px] font-normal" aria-hidden="true">
+                ›
+              </span>
             </Link>
-            <Link href="/mypage/seller/artworks/new" className="flex min-h-[70px] items-center justify-between border-b border-[#dedfd9] text-[16px] font-bold">
+            <Link
+              href="/mypage/seller/artworks/new"
+              className="flex min-h-[70px] items-center justify-between border-b border-[#dedfd9] text-[16px] font-bold"
+            >
               작품 등록
-              <span className="text-[25px] font-normal" aria-hidden="true">›</span>
+              <span className="text-[25px] font-normal" aria-hidden="true">
+                ›
+              </span>
             </Link>
           </>
         )}
-        {member.role === "ADMIN" && (
-          <Link href="/admin" className="flex min-h-[70px] items-center justify-between border-b border-[#dedfd9] text-[16px] font-bold">
-            경매 상태 관리
-            <span className="text-[25px] font-normal" aria-hidden="true">›</span>
-          </Link>
-        )}
-        {MENU.map((label, index) => (
+        {member.role === 'ADMIN' && (
           <Link
-            key={label}
-            href="#"
-            className={`flex min-h-[70px] items-center justify-between text-[16px] font-bold ${index < MENU.length - 1 ? "border-b border-[#dedfd9]" : ""}`}
+            href="/admin"
+            className="flex min-h-[70px] items-center justify-between border-b border-[#dedfd9] text-[16px] font-bold"
           >
-            {label}
-            <span className="text-[25px] font-normal leading-none" aria-hidden="true">
+            경매 상태 관리
+            <span className="text-[25px] font-normal" aria-hidden="true">
               ›
             </span>
           </Link>
+        )}
+        {MENU.map((label) => (
+          <button
+            key={label}
+            type="button"
+            disabled
+            className="flex min-h-[70px] w-full items-center justify-between border-b border-[#dedfd9] text-left font-bold text-[#73756f]"
+          >
+            {label}
+            <span className="text-xs">준비 중</span>
+          </button>
         ))}
       </nav>
 
@@ -145,6 +170,7 @@ export default function MyPage() {
             작품 둘러보기
           </Link>
         </div>
+        <p className="mt-3 text-xs text-[#73756f]">최근 본 작품 기능은 준비 중입니다.</p>
         <div className="mt-4 grid grid-cols-3 gap-2.5">
           {RECENT_COLORS.map((color, index) => (
             <div

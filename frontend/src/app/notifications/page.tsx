@@ -11,12 +11,19 @@ export default function NotificationsPage() {
           className="grid h-9 w-9 place-items-center rounded-full text-[#73756f] disabled:cursor-default"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
-            <path d="m4.5 12.5 4.5 4.5 10.5-10.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="m4.5 12.5 4.5 4.5 10.5-10.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </button>
       </div>
 
-      <p className="py-20 text-center text-[14px] text-[#73756f]">최근 알림이 없습니다</p>
+      <p className="py-20 text-center text-[14px] text-[#73756f]">알림 기능은 준비 중입니다</p>
     </div>
   );
 }
