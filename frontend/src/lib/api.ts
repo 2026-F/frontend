@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from 'axios';
 import type {
   Artist,
   ArtistCreateRequest,
@@ -20,27 +20,24 @@ import type {
   SellerProfile,
   SellerProfileRegisterRequest,
   SellerProfileUpdateRequest,
-} from "@/types";
+} from '@/types';
 
-// 서버(Next.js 서버 컴포넌트/SSR)와 브라우저(클라이언트)는 baseURL을 다르게 써야 한다.
-// - 브라우저: NEXT_PUBLIC_API_BASE_URL(보통 빈 값) + next.config.mjs의 rewrites가
-//   /api, /ws 요청을 같은 출처로 받아서 백엔드로 프록시해준다 (Mixed Content 우회).
-// - 서버: rewrites는 "브라우저 -> Vercel 서버" 요청에만 적용되고, 서버 자신이
-//   axios로 직접 나가는 요청에는 적용되지 않는다. 그래서 서버에서는 BACKEND_ORIGIN으로
-//   백엔드를 직접 호출해야 한다 (서버 간 통신이라 http여도 Mixed Content 문제 없음).
-const isServer = typeof window === "undefined";
+// 서버 렌더링과 브라우저가 사용하는 API 주소를 구분한다. 인증 헤더는 브라우저 요청에만 붙인다.
+const isServer = typeof window === 'undefined';
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  baseURL: isServer
+    ? process.env.BACKEND_ORIGIN || process.env.NEXT_PUBLIC_API_BASE_URL
+    : process.env.NEXT_PUBLIC_API_BASE_URL,
   timeout: 4000,
-  headers: { "Content-Type": "application/json" },
+  headers: { 'Content-Type': 'application/json' },
 });
 
 // 로그인 토큰을 붙이는 인터셉터 (인증 방식이 정해지면 여기서 처리)
 api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = window.localStorage.getItem("accessToken");
-    if (token && !config.headers.has("Authorization")) {
+  if (typeof window !== 'undefined') {
+    const token = window.localStorage.getItem('accessToken');
+    if (token && !config.headers.has('Authorization')) {
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
@@ -55,16 +52,23 @@ api.interceptors.response.use(
   },
 );
 
-// -----------------------------------------------------------------------
-// 도메인별 API 함수. 백엔드에 아직 없는 엔드포인트(경매 목록, 작품 상세 등)는
-// 화면(lib/lots.ts)에서 이 함수 호출 실패 시 lib/mock.ts 데이터로 대체합니다.
-// 나중에 엔드포인트가 추가되면 이 파일만 채우면 되도록 시그니처를 미리 맞춰뒀습니다.
-// -----------------------------------------------------------------------
+export type ArtworkQuery = {
+  keyword?: string;
+  status?: ArtworkStatus;
+  category?: Artwork['category'];
+  page?: number;
+  size?: number;
+  sort?: 'latest' | 'priceAsc' | 'priceDesc';
+};
 
-// GET /api/artworks는 페이지 응답(content, totalElements 등)을 준다. 기본으로 공개 상태(프리뷰·경매 중·낙찰) 작품만 온다.
-export async function fetchArtworks(params?: { keyword?: string; status?: ArtworkStatus; page?: number; size?: number }): Promise<Artwork[]> {
-  const res = await api.get<PageResponse<Artwork>>("/api/artworks", { params });
-  return res.data.content;
+export async function fetchArtworkPage(params?: ArtworkQuery): Promise<PageResponse<Artwork>> {
+  const res = await api.get<PageResponse<Artwork>>('/api/artworks', { params });
+  return res.data;
+}
+
+// 기존 판매자·관리자 호출과의 호환용. 공개 목록은 페이지 응답을 사용한다.
+export async function fetchArtworks(params?: ArtworkQuery): Promise<Artwork[]> {
+  return (await fetchArtworkPage(params)).content;
 }
 
 export async function fetchArtworkDetail(artworkId: number): Promise<ArtworkDetail> {
@@ -77,13 +81,17 @@ export async function fetchArtworkDetail(artworkId: number): Promise<ArtworkDeta
 // -----------------------------------------------------------------------
 
 /** keyword로 작가를 검색. keyword를 비우면 전체 목록(최신순)을 돌려준다. */
-export async function fetchArtists(params?: { keyword?: string; page?: number; size?: number }): Promise<ArtistPageResponse> {
-  const res = await api.get<ArtistPageResponse>("/api/artists", { params });
+export async function fetchArtists(params?: {
+  keyword?: string;
+  page?: number;
+  size?: number;
+}): Promise<ArtistPageResponse> {
+  const res = await api.get<ArtistPageResponse>('/api/artists', { params });
   return res.data;
 }
 
 export async function createArtist(request: ArtistCreateRequest): Promise<Artist> {
-  const res = await api.post<Artist>("/api/artists", request);
+  const res = await api.post<Artist>('/api/artists', request);
   return res.data;
 }
 
@@ -93,7 +101,7 @@ export async function createArtist(request: ArtistCreateRequest): Promise<Artist
 // 등록 직후 상태는 PENDING_REVIEW라 어드민 승인 전까지 공개 목록에는 안 보인다.
 // -----------------------------------------------------------------------
 export async function createArtwork(request: ArtworkCreateRequest): Promise<ArtworkDetail> {
-  const res = await api.post<ArtworkDetail>("/api/artworks", request);
+  const res = await api.post<ArtworkDetail>('/api/artworks', request);
   return res.data;
 }
 
@@ -116,7 +124,7 @@ export async function unpublishArtwork(artworkId: number): Promise<void> {
 
 /** 작품에 경매를 새로 연다. 성공하면 생성된 경매(Auction, id 포함)를 돌려준다. */
 export async function createAuction(request: AuctionCreateRequest): Promise<Auction> {
-  const res = await api.post<Auction>("/api/auctions", request);
+  const res = await api.post<Auction>('/api/auctions', request);
   return res.data;
 }
 
@@ -142,7 +150,7 @@ export async function updateAuctionStatus(auctionId: number, status: AuctionStat
  * → axios는 2xx가 아니면 에러를 throw하니까, 호출하는 쪽에서 try/catch로 잡으면 됨
  */
 export async function login(email: string, password: string): Promise<LoginResponse> {
-  const res = await api.post<LoginResponse>("/api/auth/login", { email, password });
+  const res = await api.post<LoginResponse>('/api/auth/login', { email, password });
   return res.data; // res 전체가 아니라 실제 응답 본문(JSON)만 꺼내서 반환
 }
 
@@ -155,7 +163,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
  * 역할(role)은 백엔드에서 항상 BIDDER(입찰자)로 고정해서 만듦
  */
 export async function signUp(email: string, password: string, name: string): Promise<Member> {
-  const res = await api.post<Member>("/api/auth/signup", { email, password, name });
+  const res = await api.post<Member>('/api/auth/signup', { email, password, name });
   return res.data;
 }
 
@@ -167,7 +175,7 @@ export async function signUp(email: string, password: string, name: string): Pro
  * 이 호출은 나중에 백엔드가 토큰 블랙리스트 같은 걸 만들 때를 대비해 맞춰두는 용도
  */
 export async function logout(): Promise<void> {
-  await api.post("/api/auth/logout");
+  await api.post('/api/auth/logout');
 }
 
 /**
@@ -187,12 +195,17 @@ export async function fetchSellerProfile(memberId: number): Promise<SellerProfil
   return res.data;
 }
 
-export async function registerSellerProfile(request: SellerProfileRegisterRequest): Promise<SellerProfile> {
-  const res = await api.post<SellerProfile>("/api/sellers", request);
+export async function registerSellerProfile(
+  request: SellerProfileRegisterRequest,
+): Promise<SellerProfile> {
+  const res = await api.post<SellerProfile>('/api/sellers', request);
   return res.data;
 }
 
-export async function updateSellerProfile(memberId: number, request: SellerProfileUpdateRequest): Promise<SellerProfile> {
+export async function updateSellerProfile(
+  memberId: number,
+  request: SellerProfileUpdateRequest,
+): Promise<SellerProfile> {
   const res = await api.patch<SellerProfile>(`/api/sellers/${memberId}`, request);
   return res.data;
 }
@@ -213,8 +226,8 @@ export async function updateMember(memberId: number, request: { name: string }):
 export function errorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data;
-    if (typeof data === "string" && data) return data;
-    if (data && typeof data.message === "string" && data.message) return data.message;
+    if (typeof data === 'string' && data) return data;
+    if (data && typeof data.message === 'string' && data.message) return data.message;
   }
   return fallback;
 }
@@ -224,7 +237,11 @@ export async function fetchAuction(auctionId: number): Promise<Auction> {
   return res.data;
 }
 
-export async function submitBid(auctionId: number, bidderId: number, price: number): Promise<BidResult> {
+export async function submitBid(
+  auctionId: number,
+  bidderId: number,
+  price: number,
+): Promise<BidResult> {
   const res = await api.post<BidResult>(`/api/auctions/${auctionId}/bids`, { bidderId, price });
   return res.data;
 }
@@ -241,11 +258,11 @@ export function subscribeAuctionEvents(
   onEvent: (data: unknown) => void,
   onError?: () => void,
 ): () => void {
-  if (typeof window === "undefined" || typeof EventSource === "undefined") {
+  if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
     return () => {};
   }
 
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
   const source = new EventSource(`${base}/ws/auctions/${auctionId}`);
 
   source.onmessage = (event) => {
@@ -289,7 +306,7 @@ export async function issueStageToken(auctionId: number): Promise<StageToken> {
 
 /** 경매 라이브 시청 페이지 QR코드(PNG) 주소. api 인스턴스를 거치지 않는 <img src>라 baseURL을 직접 붙인다. */
 export function qrCodeUrl(auctionId: number): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
   return `${base}/api/auctions/${auctionId}/qrcode`;
 }
 
@@ -305,16 +322,20 @@ export async function requestMediaUploadUrl(
   fileName: string,
   contentType: string,
 ): Promise<PresignedUploadResponse> {
-  const res = await api.post<PresignedUploadResponse>(`/api/artworks/${artworkId}/media/presigned-url`, null, {
-    params: { fileName, contentType },
-  });
+  const res = await api.post<PresignedUploadResponse>(
+    `/api/artworks/${artworkId}/media/presigned-url`,
+    null,
+    {
+      params: { fileName, contentType },
+    },
+  );
   return res.data;
 }
 
 export async function completeMediaUpload(
   artworkId: number,
   objectKey: string,
-  mediaType: PresignedUploadResponse["mediaType"],
+  mediaType: PresignedUploadResponse['mediaType'],
 ): Promise<void> {
   await api.post(`/api/artworks/${artworkId}/media/complete`, null, {
     params: { objectKey, mediaType },
@@ -326,13 +347,16 @@ export async function completeMediaUpload(
  * S3 PUT은 공용 axios 인스턴스(기본 Content-Type: application/json, timeout 4초)를 쓰면
  * 서명 불일치·타임아웃이 나기 때문에 fetch로 따로 보낸다.
  */
-export async function uploadArtworkMedia(artworkId: number, file: File): Promise<PresignedUploadResponse> {
-  const contentType = file.type || "application/octet-stream";
+export async function uploadArtworkMedia(
+  artworkId: number,
+  file: File,
+): Promise<PresignedUploadResponse> {
+  const contentType = file.type || 'application/octet-stream';
   const presigned = await requestMediaUploadUrl(artworkId, file.name, contentType);
 
   const putRes = await fetch(presigned.uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
+    method: 'PUT',
+    headers: { 'Content-Type': contentType },
     body: file,
   });
   if (!putRes.ok) {
