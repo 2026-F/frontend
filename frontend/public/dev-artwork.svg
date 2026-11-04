@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800">
-  <rect width="600" height="800" fill="#f5efdf"/>
-  <rect x="80" y="100" width="440" height="420" rx="4" fill="#a9c9d2"/>
-  <circle cx="380" cy="230" r="75" fill="#f0ce77"/>
-  <path d="M80 440 Q220 220 350 440 T520 430 V520 H80Z" fill="#698c79"/>
-  <text x="300" y="660" text-anchor="middle" font-family="sans-serif" font-size="30" fill="#35574a">LOCAL DEVELOPMENT</text>
-</svg>

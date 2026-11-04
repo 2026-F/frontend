@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { resolveModelSource, type ModelSource } from '@/lib/artworkModel';
-import type { ArtworkDetail } from '@/types';
-import Live3DPlacement from './Live3DPlacement';
+import { useEffect, useState } from "react";
+import { fetchModelMediaUrl, resolveModelSource, type ModelSource } from "@/lib/artworkModel";
+import type { ArtworkDetail } from "@/types";
+import Live3DPlacement from "./Live3DPlacement";
 
 interface SpacePreviewProps {
   artwork: ArtworkDetail;
@@ -23,7 +23,8 @@ export default function SpacePreview({ artwork, dimensionsLabel }: SpacePreviewP
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const resolved = await resolveModelSource(artwork);
+      const modelUrl = await fetchModelMediaUrl(artwork.id);
+      const resolved = await resolveModelSource(artwork, { apiModelUrl: modelUrl });
       if (!cancelled) setSource(resolved);
     };
     load();
@@ -45,9 +46,7 @@ export default function SpacePreview({ artwork, dimensionsLabel }: SpacePreviewP
         </p>
       </div>
 
-      {source === undefined && (
-        <p className="text-[12px] text-[#74756f]">작품 모델을 준비하는 중...</p>
-      )}
+      {source === undefined && <p className="text-[12px] text-[#74756f]">작품 모델을 준비하는 중...</p>}
       {source === null && (
         <p className="rounded-lg bg-[#f6f7f2] p-4 text-[12px] text-[#74756f]">
           이 작품은 3D 모델이 없어 공간 미리보기를 할 수 없어요.
