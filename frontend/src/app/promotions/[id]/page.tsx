@@ -18,7 +18,7 @@ export default function PromotionPage({ params }: { params: { id: string } }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/25" />
         <div className="absolute inset-x-5 bottom-7">
           <p className="text-[11px] font-bold tracking-[0.15em] text-[#c8f887]">
-            {promotion.eyebrow}
+            {promotion.artworkIds.length === 0 ? "기획전 준비 중" : promotion.eyebrow}
           </p>
           <h1 className="mt-3 break-keep text-[29px] font-black leading-tight tracking-[-0.055em]">
             {promotion.title}

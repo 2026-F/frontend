@@ -6,8 +6,6 @@ export type Promotion = {
   imageUrl: string;
   intro: string;
   artworkIds: number[];
-  primaryLink: { href: string; label: string };
-  secondaryLink?: { href: string; label: string };
 };
 
 // 실제 작품 사진을 사용하는 화면 시연용 프로모션입니다.
@@ -21,7 +19,6 @@ export const PROMOTIONS: Promotion[] = [
     intro:
       '새로운 취향을 소개하는 컬렉션 기획입니다. 출품작과 경매 일정은 아직 연결되지 않았습니다.',
     artworkIds: [],
-    primaryLink: { href: '/auctions', label: '위클리 경매 보기' },
   },
   {
     id: 'wind-sonata',
@@ -32,8 +29,6 @@ export const PROMOTIONS: Promotion[] = [
     intro:
       '이현영의 ‘관조_바람소나타3’를 소개하는 편집 콘텐츠입니다. 현재 출품이나 경매 상태를 나타내지 않습니다.',
     artworkIds: [],
-    primaryLink: { href: '/categories', label: '작품 경매 보기' },
-    secondaryLink: { href: '/categories', label: '작품 정보 보기' },
   },
   {
     id: 'weekly-picks',
@@ -44,7 +39,6 @@ export const PROMOTIONS: Promotion[] = [
     intro:
       '서로 다른 작품의 시선을 소개하는 기획입니다. 실제 출품 연결과 일정 안내는 준비 중입니다.',
     artworkIds: [],
-    primaryLink: { href: '/auctions', label: '세 작품 둘러보기' },
   },
   {
     id: 'live-collection',
@@ -55,8 +49,6 @@ export const PROMOTIONS: Promotion[] = [
     intro:
       '여러 작품을 한 방송에서 소개하는 기획입니다. 방송 편성과 출품 순서는 아직 제공하지 않습니다.',
     artworkIds: [],
-    primaryLink: { href: '/live', label: '라이브 작품 순서 보기' },
-    secondaryLink: { href: '/live', label: '라이브 경매 보기' },
   },
   {
     id: 'night-scene',
@@ -67,8 +59,6 @@ export const PROMOTIONS: Promotion[] = [
     intro:
       '전동민의 ‘달빛 아래 한남동’을 소개하는 편집 콘텐츠입니다. 실제 출품이나 라이브 방송에는 연결되지 않았습니다.',
     artworkIds: [],
-    primaryLink: { href: '/live', label: '라이브 방송 작품 보기' },
-    secondaryLink: { href: '/categories', label: '작품 정보 보기' },
   },
 ];
 

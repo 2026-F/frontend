@@ -1,5 +1,5 @@
 import { fetchArtworks, fetchAuction } from "@/lib/api";
-import { MOCK_WEEKLY_LOTS, getMockLot } from "@/lib/mock";
+import { MOCK_LOTS, MOCK_WEEKLY_LOTS, getMockLot } from "@/lib/mock";
 import { CATEGORY_LABELS } from "@/lib/categories";
 import type { Auction, Lot } from "@/types";
 
@@ -72,5 +72,5 @@ export async function getLots(): Promise<Lot[]> {
 
 export async function getLot(id: number): Promise<Lot | undefined> {
   const lots = await getLots();
-  return lots.find((lot) => lot.artwork.id === id) ?? getMockLot(id);
+  return lots.find((lot) => lot.auction.id === id) ?? MOCK_LOTS.find((lot) => lot.auction.id === id);
 }
