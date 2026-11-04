@@ -10,6 +10,7 @@ export type MockSaleType = "WEEKLY" | "LIVE";
 
 type MockRecord = {
   id: number;
+  auctionId: number;
   saleType: MockSaleType;
   artistName: string;
   title: string;
@@ -41,7 +42,7 @@ type MockRecord = {
 // 혼합 재료를 사용한 평면 작품은 화면의 네 가지 분류 중 회화에 포함합니다.
 const RECORDS: MockRecord[] = [
   {
-    id: 1, saleType: "WEEKLY", artistName: "유제이", title: "파랑새",
+    id: 1, auctionId: 101, saleType: "WEEKLY", artistName: "유제이", title: "파랑새",
     imageUrl: "/artworks/uj-bluebird-2025.jpg",
     sourcePageUrl: "https://www.opengallery.co.kr/artwork/A2827-0008/",
     category: "PAINTING", medium: "캔버스에 아크릴", widthCm: 73, heightCm: 61,
@@ -52,7 +53,7 @@ const RECORDS: MockRecord[] = [
     bidCount: 4, viewerCount: 28,
   },
   {
-    id: 2, saleType: "WEEKLY", artistName: "이현영", title: "관조_바람소나타3",
+    id: 2, auctionId: 102, saleType: "WEEKLY", artistName: "이현영", title: "관조_바람소나타3",
     imageUrl: "/artworks/lee-hyunyoung-wind-sonata-3-2025.webp",
     sourcePageUrl: "https://www.seoulauction.com/auction/online/1060/43",
     category: "PAINTING", medium: null, widthCm: null, heightCm: null,
@@ -63,7 +64,7 @@ const RECORDS: MockRecord[] = [
     bidCount: 0, viewerCount: 12,
   },
   {
-    id: 3, saleType: "WEEKLY", artistName: "정국영", title: "Chaotic Signal (The Rhythm of Life)",
+    id: 3, auctionId: 103, saleType: "WEEKLY", artistName: "정국영", title: "Chaotic Signal (The Rhythm of Life)",
     imageUrl: "/artworks/jeong-kookyoung-chaotic-signal-2024.webp",
     sourcePageUrl: "https://findartinfo.com/artwork/chaotic-signal-the-rhythm-of-life/B8C291CEF09047949DA0E925FE83227F",
     category: "PAINTING", medium: "캔버스에 한지 혼합 재료", widthCm: 60, heightCm: 60,
@@ -74,7 +75,7 @@ const RECORDS: MockRecord[] = [
     bidCount: 0, viewerCount: 0,
   },
   {
-    id: 4, saleType: "LIVE", artistName: "임수영", title: "대박이의 화려한 외출-몽유대박도",
+    id: 4, auctionId: 104, saleType: "LIVE", artistName: "임수영", title: "대박이의 화려한 외출-몽유대박도",
     imageUrl: "/artworks/lim-sooyoung-daebak-dream-2025.webp",
     sourcePageUrl: "https://findartinfo.com/artwork/daebaks-splendid-outing-dream-journey-of-daebak/F5AC7DC242974F10B07A3FB64973EE8A",
     category: "PAINTING", medium: "캔버스에 아크릴", widthCm: 40, heightCm: 40,
@@ -85,7 +86,7 @@ const RECORDS: MockRecord[] = [
     bidCount: 3, viewerCount: 0,
   },
   {
-    id: 5, saleType: "LIVE", artistName: "송유미", title: "인드라망 25-16",
+    id: 5, auctionId: 105, saleType: "LIVE", artistName: "송유미", title: "인드라망 25-16",
     imageUrl: "/artworks/song-yumi-indras-net-25-16-2025.webp",
     sourcePageUrl: "https://findartinfo.com/artwork/indras-net-25-16/065972EA40404B2F96EC9F98FC69208A",
     category: "PAINTING", medium: "한지에 색연필과 아크릴", widthCm: 34.9, heightCm: 28.1,
@@ -96,7 +97,7 @@ const RECORDS: MockRecord[] = [
     bidCount: 2, viewerCount: 128,
   },
   {
-    id: 6, saleType: "LIVE", artistName: "전동민", title: "달빛 아래 한남동",
+    id: 6, auctionId: 106, saleType: "LIVE", artistName: "전동민", title: "달빛 아래 한남동",
     imageUrl: "/artworks/jeon-dongmin-hannam-moonlight-2019.jpg",
     sourcePageUrl: "https://www.namdogallery.or.kr/nd/ndgallery/artistworks.html?awidx=5591",
     category: "PAINTING", medium: "한지에 채색", widthCm: 80, heightCm: 117,
@@ -201,6 +202,7 @@ function toRecord(seed: FictionalSeed): MockRecord {
 
   return {
     id: seed.id,
+    auctionId: 100 + seed.id,
     saleType: "WEEKLY",
     artistName: seed.artistName,
     title: seed.title,
@@ -227,6 +229,7 @@ function toRecord(seed: FictionalSeed): MockRecord {
 const ALL_RECORDS: MockRecord[] = [...RECORDS, ...FICTIONAL_SEEDS.map(toRecord)];
 
 export const MOCK_ARTWORK_DETAILS: ArtworkDetail[] = ALL_RECORDS.map((record) => ({
+  auctionId: record.auctionId,
   id: record.id,
   consignorId: 100 + record.id,
   artist: { id: 200 + record.id, name: record.artistName, profileImageUrl: null },
@@ -269,10 +272,10 @@ export const MOCK_LOTS: MockLot[] = ALL_RECORDS.map((record) => ({
     certificateUrl: null,
     imageUrl: record.imageUrl,
     status: record.artworkStatus,
-    auctionId: record.id,
+    auctionId: record.auctionId,
   },
   auction: {
-    id: record.id,
+    id: record.auctionId,
     artworkId: record.id,
     startPrice: record.startPrice,
     currentPrice: record.currentPrice,
