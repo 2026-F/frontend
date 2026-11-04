@@ -1,22 +1,37 @@
-import { getLots } from "@/lib/lots";
-import AuctionListClient from "@/components/AuctionListClient";
-
-// 작품 등록/승인/경매 상태가 실시간으로 바뀌는 페이지라, 빌드 시점 정적 캐싱 없이
-// 요청마다 백엔드에서 새로 가져오게 한다 (app/page.tsx 홈과 동일한 패턴).
-export const dynamic = "force-dynamic";
-
-export default async function AuctionsPage() {
-  const lots = await getLots();
-
+import { getLots } from '@/lib/lots';
+import { pageParams } from '@/lib/catalogDisplay';
+import { requestFailure } from '@/lib/requestFailure';
+import AuctionListClient from '@/components/AuctionListClient';
+import PageNavigation from '@/components/PageNavigation';
+import DataNotice from '@/components/DataNotice';
+export const dynamic = 'force-dynamic';
+export default async function AuctionsPage({
+  searchParams,
+}: {
+  searchParams?: { page?: string; size?: string };
+}) {
+  let page;
+  try {
+    page = await getLots(pageParams(searchParams));
+  } catch (error) {
+    return (
+      <div className="container-page py-5">
+        <h1>WEEKLY AUCTION</h1>
+        <DataNotice message={requestFailure(error)} />
+      </div>
+    );
+  }
   return (
     <div className="container-page flex flex-col gap-6 py-5">
       <div>
-        <h1 className="text-[25px] font-black tracking-[-0.05em] text-[#171717]">WEEKLY AUCTION</h1>
-        <p className="mt-1 text-[13px] font-semibold text-[#171717]">
-          진행 중인 경매와 예정 작품을 확인하세요.
-        </p>
+        <h1 className="text-[25px] font-black">WEEKLY AUCTION</h1>
+        <p className="mt-1 text-sm">진행 중인 경매와 예정 작품을 확인하세요.</p>
       </div>
-      <AuctionListClient lots={lots} />
+      {page.content.some((item) => item.auctionError) && (
+        <DataNotice message="일부 경매 정보를 불러오지 못했습니다. 다시 시도해 주세요." />
+      )}
+      <AuctionListClient lots={page.content} />
+      <PageNavigation page={page} path="/auctions" />
     </div>
   );
 }

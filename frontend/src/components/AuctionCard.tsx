@@ -1,41 +1,52 @@
-import Link from "next/link";
-import type { Lot } from "@/types";
-import { formatWon } from "@/lib/format";
-import { AuctionStatusBadge } from "@/components/StatusBadge";
-import CountdownTimer from "@/components/CountdownTimer";
+import Link from 'next/link';
+import type { CatalogItem } from '@/types';
+import { formatWon } from '@/lib/format';
+import { priceOf, itemHref } from '@/lib/catalogDisplay';
+import { AuctionStatusBadge } from '@/components/StatusBadge';
+import ArtworkImage from '@/components/ArtworkImage';
+import CountdownTimer from '@/components/CountdownTimer';
 
-export default function AuctionCard({ lot }: { lot: Lot }) {
+export default function AuctionCard({ lot }: { lot: CatalogItem }) {
   const { artwork, auction } = lot;
-  const isClosed = auction.status === "CLOSED";
-  const showCountdown = auction.status === "ONGOING" || auction.status === "EXTENDED";
-  const priceLabel = isClosed ? "낙찰가" : "현재가";
-
+  const price = priceOf(artwork, auction);
   return (
     <Link
-      href={`/auctions/${auction.id}`}
+      href={itemHref(lot)}
       className="card-surface group flex flex-col overflow-hidden transition active:scale-[0.98]"
     >
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#e8e9e4]">
-        <img src={artwork.imageUrl ?? lot.images[0]} alt={artwork.title} className="h-full w-full object-cover" />
+        <ArtworkImage src={artwork.imageUrl} alt={artwork.title} />
         <div className="absolute left-2 top-2">
-          <AuctionStatusBadge status={auction.status} />
-        </div>
-      </div>
-
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[#566e22]">{lot.category}</p>
-        <h3 className="line-clamp-1 font-display text-sm font-semibold leading-snug text-[#171717]">{artwork.title}</h3>
-        <p className="truncate text-xs text-[#73756f]">{lot.artistName}</p>
-
-        <div className="mt-auto flex flex-col gap-1 pt-2">
-          <div>
-            <p className="text-[10px] text-[#73756f]">{priceLabel}</p>
-            <p className="font-display text-sm font-semibold text-[#171717]">{formatWon(auction.currentPrice)}</p>
-          </div>
-          {showCountdown && (
-            <CountdownTimer target={auction.auctionEndAt} extended={auction.status === "EXTENDED"} className="text-[11px]" />
+          {auction ? (
+            <AuctionStatusBadge status={auction.status} />
+          ) : (
+            <span className="rounded bg-white/90 px-2 py-1 text-xs">
+              {lot.auctionError ? '경매 조회 실패' : '작품 프리뷰'}
+            </span>
           )}
         </div>
+      </div>
+      <div className="flex flex-1 flex-col gap-1 p-3">
+        <p className="truncate text-[10px] font-semibold text-[#566e22]">{lot.category}</p>
+        <h3 className="line-clamp-1 text-sm font-semibold">{artwork.title}</h3>
+        <p className="truncate text-xs text-[#73756f]">{lot.artistName}</p>
+        <div className="mt-auto pt-2">
+          {lot.auctionError ? (
+            <p className="text-xs text-[#73756f]">경매 정보 확인 필요</p>
+          ) : (
+            <>
+              <p className="text-[10px] text-[#73756f]">{price.label}</p>
+              <p className="text-sm font-semibold">{formatWon(price.value)}</p>
+            </>
+          )}
+        </div>
+        {auction && (auction.status === 'ONGOING' || auction.status === 'EXTENDED') && (
+          <CountdownTimer
+            target={auction.auctionEndAt}
+            extended={auction.status === 'EXTENDED'}
+            className="text-xs"
+          />
+        )}
       </div>
     </Link>
   );
