@@ -89,12 +89,53 @@ export interface Auction {
   status: AuctionStatus;
 }
 
+// 백엔드 BidService.BidResponse와 필드명이 같아야 한다. GET /api/auctions/{id}/bids
 export interface Bid {
-  id: number;
-  auctionId: number;
+  bidId: number;
   bidderId: number;
   price: number;
   createdAt: string;
+  canceled: boolean;
+  canceledAt: string | null;
+}
+
+// 백엔드 notification/dto. GET /api/notifications
+export type NotificationType =
+  | "AUCTION_WON"
+  | "OUTBID"
+  | "PAYMENT_COMPLETED"
+  | "PAYMENT_DEADLINE"
+  | "SHIPMENT_SHIPPED"
+  | "PAYOUT_READY";
+
+export interface Notification {
+  id: number;
+  type: NotificationType;
+  title: string;
+  message: string;
+  linkUrl: string | null;
+  read: boolean;
+  createdAt: string;
+  readAt: string | null;
+}
+
+export interface NotificationPage extends PageResponse<Notification> {
+  unreadCount: number;
+}
+
+// 백엔드 AuctionLiveView. GET /api/auctions/{id}/live 응답과 SSE auction-live, auction-tick 이벤트가 같은 모양이다.
+export interface AuctionLiveView {
+  auctionId: number;
+  currentPrice: number;
+  minBidUnit: number;
+  nextMinPrice: number;
+  auctionEndAt: string;
+  status: AuctionStatus;
+  remainingSeconds: number;
+  serverTime: string;
+  version: number;
+  reason: "SNAPSHOT" | "TICK" | "BID" | "BID_CANCELED" | "CLOSED";
+  extended: boolean;
 }
 
 export interface BidResult {
@@ -239,11 +280,9 @@ export interface ArtistCreateRequest {
 // ---------------------------------------------------------------------
 // 작품 등록 요청 — POST /api/artworks
 // 백엔드 ArtworkCreateRequest.java 레코드와 필드명이 똑같아야 한다.
-// consignorId는 로그인한 판매자 본인의 memberId를 그대로 보낸다
-// (백엔드에 아직 인증 검증이 안 붙어 있음 — 이슈 #33, 프론트에서는 임의 입력을 받지 않고 항상 본인 id만 보냄)
+// 위탁자는 서버가 로그인 토큰으로 정하므로 보내지 않는다.
 // ---------------------------------------------------------------------
 export interface ArtworkCreateRequest {
-  consignorId: number;
   artistId: number;
   title: string;
   description: string;

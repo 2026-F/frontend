@@ -9,10 +9,14 @@ import type {
   ArtworkStatus,
   Auction,
   AuctionCreateRequest,
+  AuctionLiveView,
   AuctionStatus,
+  Bid,
   BidResult,
   Livestream,
   LoginResponse, // 추가: 로그인 응답 타입
+  NotificationPage,
+  Notification,
   Member, // 추가: 회원 정보 타입 (회원가입 응답, 회원 조회 응답에 같이 씀)
   PageResponse,
   PresignedUploadResponse,
@@ -237,26 +241,32 @@ export async function fetchAuction(auctionId: number): Promise<Auction> {
   return res.data;
 }
 
-export async function submitBid(
-  auctionId: number,
-  bidderId: number,
-  price: number,
-): Promise<BidResult> {
-  const res = await api.post<BidResult>(`/api/auctions/${auctionId}/bids`, { bidderId, price });
+/** 입찰자는 서버가 로그인 토큰으로 정한다. 요청 본문에는 금액만 보낸다. 비로그인이면 401. */
+export async function submitBid(auctionId: number, price: number): Promise<BidResult> {
+  const res = await api.post<BidResult>(`/api/auctions/${auctionId}/bids`, { price });
   return res.data;
 }
 
+/** 경매의 입찰 기록 (최신순 정렬은 호출하는 쪽에서 한다). 취소된 입찰도 canceled=true로 포함된다. */
+export async function fetchBids(auctionId: number): Promise<Bid[]> {
+  const res = await api.get<Bid[]>(`/api/auctions/${auctionId}/bids`);
+  return res.data;
+}
+
+export const AUCTION_LIVE_EVENTS = ['auction-live', 'auction-tick'] as const;
+
 /**
  * 경매 실시간 이벤트 구독 (SSE, GET /ws/auctions/{id}).
- * 백엔드 BidService가 아직 AuctionSseRegistry.broadcast()를 호출하지 않아서
- * (README의 TODO 항목) 지금은 이벤트가 오지 않을 수 있습니다. 그런 상황에서도
- * 화면이 실시간처럼 보이도록 호출하는 쪽(BidPanel)에서 폴링을 함께 둡니다.
- * 연결이 끊기면 onError로 알리고, cleanup 함수를 반환하니 useEffect에서 정리하세요.
+ * 백엔드는 이름 있는 이벤트로 AuctionLiveView를 보낸다.
+ * - auction-live: 구독 직후 현재 상태(SNAPSHOT), 입찰, 입찰 취소, 마감
+ * - auction-tick: 잔여시간 보정용 주기 동기화
+ * 이름 없는 이벤트(onmessage)는 이전 화면 호환용이라 구독하지 않는다.
+ * onOpen/onError로 연결 상태를 알리고, cleanup 함수를 반환하니 useEffect에서 정리한다.
  */
 export function subscribeAuctionEvents(
   auctionId: number,
-  onEvent: (data: unknown) => void,
-  onError?: () => void,
+  onEvent: (view: AuctionLiveView) => void,
+  handlers?: { onOpen?: () => void; onError?: () => void },
 ): () => void {
   if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
     return () => {};
@@ -265,18 +275,43 @@ export function subscribeAuctionEvents(
   const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
   const source = new EventSource(`${base}/ws/auctions/${auctionId}`);
 
-  source.onmessage = (event) => {
+  const listener = (event: MessageEvent) => {
     try {
-      onEvent(JSON.parse(event.data));
+      onEvent(JSON.parse(event.data) as AuctionLiveView);
     } catch {
-      onEvent(event.data);
+      // 형식이 맞지 않는 이벤트는 무시한다.
     }
   };
-  source.onerror = () => {
-    onError?.();
-  };
+  AUCTION_LIVE_EVENTS.forEach((name) => source.addEventListener(name, listener));
+  source.onopen = () => handlers?.onOpen?.();
+  source.onerror = () => handlers?.onError?.();
 
-  return () => source.close();
+  return () => {
+    AUCTION_LIVE_EVENTS.forEach((name) => source.removeEventListener(name, listener));
+    source.close();
+  };
+}
+
+// -----------------------------------------------------------------------
+// 알림 (로그인 필요, 본인 알림만). 백엔드: notification/controller/NotificationController.java
+// -----------------------------------------------------------------------
+
+export async function fetchNotifications(params?: {
+  page?: number;
+  size?: number;
+}): Promise<NotificationPage> {
+  const res = await api.get<NotificationPage>('/api/notifications', { params });
+  return res.data;
+}
+
+export async function markNotificationRead(notificationId: number): Promise<Notification> {
+  const res = await api.patch<Notification>(`/api/notifications/${notificationId}/read`);
+  return res.data;
+}
+
+export async function markAllNotificationsRead(): Promise<number> {
+  const res = await api.patch<{ updatedCount: number }>('/api/notifications/read-all');
+  return res.data.updatedCount;
 }
 
 // -----------------------------------------------------------------------

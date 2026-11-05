@@ -41,7 +41,7 @@ export default function ArtworkRegisterPage() {
           판매자만 이용할 수 있는 화면입니다.
         </p>
       ) : (
-        <ArtworkRegisterForm key={member.id} memberId={member.id} />
+        <ArtworkRegisterForm key={member.id} />
       )}
     </div>
   );
