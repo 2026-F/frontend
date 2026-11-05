@@ -5,10 +5,11 @@
 //  - PENDING_REVIEW: 승인 / 반려 버튼
 //  - PREVIEW이면서 경매가 아직 없음: "경매 생성" 폼 (시작가/최소입찰단위/기간)
 //  - 경매가 있음: 현재 경매 상태 + 상태를 직접 바꾸는 선택창(관리자 수동 전환)
+//  - 경매가 마감됨: 같은 작품을 새 경매로 다시 여는 폼
 import axios from 'axios';
 import { useState } from 'react';
 import type { AdminRow } from '@/app/admin/page';
-import { approveArtwork, createAuction, errorMessage, rejectArtwork, unpublishArtwork, updateAuctionStatus } from '@/lib/api';
+import { approveArtwork, createAuction, errorMessage, rejectArtwork, reopenAuction, unpublishArtwork, updateAuctionStatus } from '@/lib/api';
 import type { ArtworkStatus, AuctionStatus } from '@/types';
 
 const ARTWORK_STATUS_LABELS: Record<ArtworkStatus, string> = {
@@ -63,6 +64,7 @@ export default function AdminArtworkRow({
   const [auctionEndAt, setAuctionEndAt] = useState(toLocalInputValue(new Date(now.getTime() + 24 * 60 * 60_000)));
 
   const [nextAuctionStatus, setNextAuctionStatus] = useState<AuctionStatus>(auction?.status ?? 'ONGOING');
+  const [reopenMinutes, setReopenMinutes] = useState('60');
 
   const handleApprove = async () => {
     setError(null);
@@ -130,6 +132,26 @@ export default function AdminArtworkRow({
       onChange({ artwork: { ...artwork, auctionId: created.id }, auction: created });
     } catch (cause) {
       setError(errorMessage(cause, '경매 생성에 실패했습니다.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleReopen = async () => {
+    if (!auction) return;
+    const minutes = Number(reopenMinutes);
+    if (!Number.isInteger(minutes) || minutes <= 0) {
+      setError('진행 시간은 1분 이상의 정수로 입력해 주세요.');
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    try {
+      const created = await reopenAuction(auction.id, minutes);
+      setNextAuctionStatus(created.status);
+      onChange({ artwork: { ...artwork, status: 'IN_AUCTION', auctionId: created.id }, auction: created });
+    } catch (cause) {
+      setError(errorMessage(cause, '경매를 다시 열지 못했습니다.'));
     } finally {
       setBusy(false);
     }
@@ -303,7 +325,7 @@ export default function AdminArtworkRow({
               경매 #{auction.id} · 현재가 {auction.currentPrice.toLocaleString()}원
             </p>
             <select
-              disabled={busy}
+              disabled={busy || auction.status === 'CLOSED'}
               value={nextAuctionStatus}
               onChange={(event) => setNextAuctionStatus(event.target.value as AuctionStatus)}
               className="mt-1 h-10 w-full rounded-[8px] border border-[#dfe0da] bg-white px-2 text-[13px] outline-none focus:border-[#171717]"
@@ -318,11 +340,40 @@ export default function AdminArtworkRow({
           </div>
           <button
             type="button"
-            disabled={busy || nextAuctionStatus === auction.status}
+            disabled={busy || auction.status === 'CLOSED' || nextAuctionStatus === auction.status}
             onClick={handleStatusChange}
             className="h-10 shrink-0 rounded-[8px] bg-[#a8ff00] px-4 text-[13px] font-bold disabled:opacity-50"
           >
             변경
+          </button>
+        </div>
+      )}
+
+      {auction?.status === 'CLOSED' && artwork.status !== 'REJECTED' && (
+        <div className="mt-3 space-y-2 rounded-[10px] bg-[#f7f8f4] p-3">
+          <label className="block text-[12px] font-semibold">
+            진행 시간(분)
+            <input
+              type="number"
+              min="1"
+              step="1"
+              disabled={busy}
+              value={reopenMinutes}
+              onChange={(event) => setReopenMinutes(event.target.value)}
+              className="mt-1 h-10 w-full rounded-[8px] border border-[#dfe0da] bg-white px-2 text-[13px] outline-none focus:border-[#171717]"
+            />
+          </label>
+          <p className="text-[11px] leading-5 text-[#73756f]">
+            시작가부터 새 경매가 바로 진행됩니다. 미결제 낙찰은 무효가 되고, 결제가 완료됐거나 진행 중이면
+            다시 열 수 없습니다.
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleReopen}
+            className="h-10 w-full rounded-[8px] bg-[#a8ff00] text-[13px] font-bold disabled:opacity-50"
+          >
+            {busy ? '여는 중...' : '다시 열기'}
           </button>
         </div>
       )}
