@@ -60,7 +60,7 @@ function parseOptionalPositiveInteger(value: string): number | null | undefined 
   return parsed;
 }
 
-export default function ArtworkRegisterForm({ memberId }: { memberId: number }) {
+export default function ArtworkRegisterForm() {
   const [artistId, setArtistId] = useState<number | null>(null);
   const [artistName, setArtistName] = useState<string | null>(null);
 
@@ -142,7 +142,6 @@ export default function ArtworkRegisterForm({ memberId }: { memberId: number }) 
     setSubmitting(true);
     try {
       const created = await createArtwork({
-        consignorId: memberId,
         artistId,
         title,
         description,

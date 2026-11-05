@@ -5,15 +5,18 @@ export default function PageNavigation({
   page,
   path,
   category,
+  keyword,
 }: {
   page: PageResponse<unknown>;
   path: string;
   category?: string;
+  keyword?: string;
 }) {
   if (page.totalPages === 0) return null;
   const href = (index: number) => {
     const query = new URLSearchParams({ page: String(index), size: String(page.size) });
     if (category) query.set('category', category);
+    if (keyword) query.set('q', keyword);
     return `${path}?${query}`;
   };
   return (

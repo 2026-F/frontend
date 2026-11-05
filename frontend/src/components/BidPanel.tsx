@@ -1,47 +1,71 @@
 'use client';
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import type { AuctionStatus, Lot } from '@/types';
-import { fetchAuction, submitBid, subscribeAuctionEvents } from '@/lib/api';
+import Link from 'next/link';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import axios from 'axios';
+import type { AuctionLiveView, Bid, Lot } from '@/types';
+import {
+  errorMessage,
+  fetchAuction,
+  fetchBids,
+  submitBid,
+  subscribeAuctionEvents,
+} from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { formatDateTime, formatWon } from '@/lib/format';
 import { AuctionStatusBadge } from '@/components/StatusBadge';
 import { priceOf } from '@/lib/catalogDisplay';
 import CountdownTimer from '@/components/CountdownTimer';
 
-interface BidLogEntry {
-  id: string;
-  price: number;
-  bidderId: number;
-  createdAt: string;
-  mine?: boolean;
-}
+// SSE가 끊겼을 때만 현재가를 다시 조회하는 주기
+const FALLBACK_POLL_MS = 5000;
 
-interface AuctionEventPayload {
-  currentPrice?: number;
-  auctionEndAt?: string;
-  extended?: boolean;
-  bidderId?: number;
-}
-
-function randomBidderId() {
-  return 1000 + Math.floor(Math.random() * 900);
+function latestFirst(bids: Bid[]): Bid[] {
+  return bids.filter((bid) => !bid.canceled).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export default function BidPanel({ lot }: { lot: Lot }) {
+  const member = useAuth((s) => s.member);
+  const accessToken = useAuth((s) => s.accessToken);
   const [auction, setAuction] = useState(lot.auction);
-  const [bidderId, setBidderId] = useState(randomBidderId());
   const [amount, setAmount] = useState(lot.auction.currentPrice + lot.auction.minBidUnit);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [log, setLog] = useState<BidLogEntry[]>([]);
+  const [bids, setBids] = useState<Bid[]>([]);
+  const [sseConnected, setSseConnected] = useState(false);
+  // 늦게 도착한 이전 상태 이벤트를 무시하기 위한 마지막 version
+  const lastVersion = useRef(-1);
 
   const isBiddable = auction.status === 'ONGOING' || auction.status === 'EXTENDED';
   const minNext = auction.currentPrice + auction.minBidUnit;
+  const isLoggedIn = Boolean(member && accessToken);
 
   // 현재가가 바뀌면 다음 최소 입찰가로 입력값을 맞춰줌 (입력값이 이미 그보다 크면 유지)
   useEffect(() => {
     setAmount((prev) => (prev < minNext ? minNext : prev));
   }, [minNext]);
+
+  const reloadBids = useCallback(() => {
+    fetchBids(auction.id)
+      .then((list) => setBids(latestFirst(list)))
+      .catch(() => {});
+  }, [auction.id]);
+
+  const applyLiveView = useCallback(
+    (view: AuctionLiveView) => {
+      if (view.version < lastVersion.current) return;
+      lastVersion.current = view.version;
+      setAuction((prev) => ({
+        ...prev,
+        currentPrice: view.currentPrice,
+        minBidUnit: view.minBidUnit,
+        auctionEndAt: view.auctionEndAt,
+        status: view.status,
+      }));
+      if (view.reason === 'BID' || view.reason === 'BID_CANCELED') reloadBids();
+    },
+    [reloadBids],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -54,50 +78,33 @@ export default function BidPanel({ lot }: { lot: Lot }) {
       .catch(() => {
         setError('경매 정보를 갱신하지 못했습니다. 다시 확인해 주세요.');
       });
+    reloadBids();
 
-    const unsubscribe = subscribeAuctionEvents(auction.id, (data) => {
-      if (data && typeof data === 'object') {
-        const payload = data as AuctionEventPayload;
-        if (typeof payload.currentPrice === 'number') {
-          setAuction((prev) => ({
-            ...prev,
-            currentPrice: payload.currentPrice as number,
-            auctionEndAt: payload.auctionEndAt ?? prev.auctionEndAt,
-            status: payload.extended ? ('EXTENDED' as AuctionStatus) : prev.status,
-          }));
-          setLog((prev) => [
-            {
-              id: `sse-${Date.now()}`,
-              price: payload.currentPrice as number,
-              bidderId: payload.bidderId ?? 0,
-              createdAt: new Date().toISOString(),
-            },
-            ...prev,
-          ]);
-        }
-      }
+    const unsubscribe = subscribeAuctionEvents(auction.id, applyLiveView, {
+      onOpen: () => setSseConnected(true),
+      onError: () => setSseConnected(false),
     });
 
-    // 백엔드가 아직 SSE로 입찰 이벤트를 브로드캐스트하지 않는 경우(README TODO)를 대비해
-    // 주기적으로 현재가를 다시 조회해서 다른 사람의 입찰도 반영되도록 보강함
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [auction.id, applyLiveView, reloadBids]);
+
+  // SSE가 끊긴 동안에만 현재가를 주기적으로 다시 조회한다. EventSource는 스스로 재연결을 시도한다.
+  useEffect(() => {
+    if (sseConnected) return;
     const poll = setInterval(() => {
       fetchAuction(auction.id)
         .then((real) => {
-          if (cancelled) return;
           setAuction((prev) =>
             real.currentPrice !== prev.currentPrice || real.status !== prev.status ? real : prev,
           );
         })
         .catch(() => {});
-    }, 5000);
-
-    return () => {
-      cancelled = true;
-      unsubscribe();
-      clearInterval(poll);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auction.id]);
+    }, FALLBACK_POLL_MS);
+    return () => clearInterval(poll);
+  }, [auction.id, sseConnected]);
 
   const quickAdds = useMemo(
     () => [1, 5, 10].map((multiplier) => auction.minBidUnit * multiplier),
@@ -106,36 +113,25 @@ export default function BidPanel({ lot }: { lot: Lot }) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!isLoggedIn) return;
     setSubmitting(true);
     setError(null);
     try {
-      const result = await submitBid(auction.id, bidderId, amount);
+      const result = await submitBid(auction.id, amount);
       setAuction((prev) => ({
         ...prev,
         currentPrice: result.currentPrice,
         auctionEndAt: result.auctionEndAt,
         status: result.extended ? 'EXTENDED' : prev.status,
       }));
-      setLog((prev) => [
-        {
-          id: `me-${Date.now()}`,
-          price: result.currentPrice,
-          bidderId,
-          createdAt: new Date().toISOString(),
-          mine: true,
-        },
-        ...prev,
-      ]);
       setAmount(result.currentPrice + auction.minBidUnit);
+      reloadBids();
     } catch (err: unknown) {
-      const response = (err as { response?: { data?: unknown } })?.response;
-      const data = response?.data;
-      const message =
-        typeof data === 'string'
-          ? data
-          : ((data as { message?: string })?.message ??
-            '입찰에 실패했습니다. 백엔드가 실행 중인지 확인해주세요.');
-      setError(message);
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        setError('로그인이 만료되었습니다. 다시 로그인해 주세요.');
+      } else {
+        setError(errorMessage(err, '입찰에 실패했습니다. 잠시 후 다시 시도해 주세요.'));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -176,21 +172,19 @@ export default function BidPanel({ lot }: { lot: Lot }) {
           {formatDateTime(auction.auctionEndAt)}
         </p>
 
-        {isBiddable ? (
+        {isBiddable && !isLoggedIn ? (
+          <div className="flex flex-col gap-3 border-t border-white/20 pt-4">
+            <p className="text-sm text-[#bfc1bb]">입찰하려면 로그인해 주세요.</p>
+            <Link href="/login" className="btn-primary text-center">
+              로그인하고 입찰하기
+            </Link>
+          </div>
+        ) : isBiddable ? (
           <form
             onSubmit={handleSubmit}
             className="flex flex-col gap-3 border-t border-white/20 pt-4"
           >
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col gap-1 text-xs text-[#bfc1bb]">
-                입찰자 ID (데모용)
-                <input
-                  type="number"
-                  value={bidderId}
-                  onChange={(e) => setBidderId(Number(e.target.value))}
-                  className="w-full rounded-lg border border-white/30 bg-[#292b27] px-4 py-2.5 text-sm text-white focus:border-[#b8f53d] focus:outline-none focus:ring-1 focus:ring-[#b8f53d]"
-                />
-              </label>
+            <div className="flex flex-col gap-3">
               <label className="flex flex-col gap-1 text-xs text-[#bfc1bb]">
                 입찰 금액 (원)
                 <input
@@ -243,17 +237,21 @@ export default function BidPanel({ lot }: { lot: Lot }) {
       <div className="flex flex-col gap-3 rounded-xl border border-[#171717] bg-[#171717] p-6 text-white">
         <p className="text-sm font-semibold text-white">실시간 입찰 내역</p>
         <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
-          {log.length === 0 ? (
+          {bids.length === 0 ? (
             <p className="text-sm text-[#bfc1bb]">아직 입찰 내역이 없습니다.</p>
           ) : (
-            log.map((entry) => (
+            bids.map((entry) => (
               <div
-                key={entry.id}
+                key={entry.bidId}
                 className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
-                  entry.mine ? 'bg-[#33421d] text-white' : 'bg-white/10 text-white'
+                  entry.bidderId === member?.id
+                    ? 'bg-[#33421d] text-white'
+                    : 'bg-white/10 text-white'
                 }`}
               >
-                <span>입찰자 #{entry.bidderId}</span>
+                <span>
+                  {entry.bidderId === member?.id ? '내 입찰' : `입찰자 #${entry.bidderId}`}
+                </span>
                 <span className="font-semibold">{formatWon(entry.price)}</span>
                 <span className="text-xs text-[#bfc1bb]">
                   {new Date(entry.createdAt).toLocaleTimeString('ko-KR')}
