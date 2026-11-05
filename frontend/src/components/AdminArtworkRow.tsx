@@ -9,6 +9,11 @@
 import axios from 'axios';
 import { useState } from 'react';
 import type { AdminRow } from '@/app/admin/page';
+import ReopenEndPicker, {
+  REOPEN_END_ERROR,
+  reopenDurationMinutes,
+  reopenEndAfterDays,
+} from '@/components/ReopenEndPicker';
 import { approveArtwork, createAuction, errorMessage, rejectArtwork, reopenAuction, unpublishArtwork, updateAuctionStatus } from '@/lib/api';
 import type { ArtworkStatus, AuctionStatus } from '@/types';
 
@@ -47,10 +52,15 @@ export default function AdminArtworkRow({
   artwork,
   auction,
   onChange,
+  selected,
+  onToggleSelect,
 }: {
   artwork: AdminRow['artwork'];
   auction: AdminRow['auction'];
   onChange: (next: AdminRow) => void;
+  selected?: boolean;
+  // 다시 열 수 있는 작품에만 넘긴다. 없으면 선택 체크박스를 보여주지 않는다.
+  onToggleSelect?: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +74,7 @@ export default function AdminArtworkRow({
   const [auctionEndAt, setAuctionEndAt] = useState(toLocalInputValue(new Date(now.getTime() + 24 * 60 * 60_000)));
 
   const [nextAuctionStatus, setNextAuctionStatus] = useState<AuctionStatus>(auction?.status ?? 'ONGOING');
-  const [reopenMinutes, setReopenMinutes] = useState('60');
+  const [reopenEndAt, setReopenEndAt] = useState(() => reopenEndAfterDays(7));
 
   const handleApprove = async () => {
     setError(null);
@@ -139,9 +149,9 @@ export default function AdminArtworkRow({
 
   const handleReopen = async () => {
     if (!auction) return;
-    const minutes = Number(reopenMinutes);
-    if (!Number.isInteger(minutes) || minutes <= 0) {
-      setError('진행 시간은 1분 이상의 정수로 입력해 주세요.');
+    const minutes = reopenDurationMinutes(reopenEndAt);
+    if (minutes === null) {
+      setError(REOPEN_END_ERROR);
       return;
     }
     setError(null);
@@ -192,7 +202,16 @@ export default function AdminArtworkRow({
   return (
     <div className="rounded-[14px] border border-[#dfe0da] p-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        {onToggleSelect && (
+          <input
+            type="checkbox"
+            aria-label={`${artwork.title} 선택`}
+            checked={Boolean(selected)}
+            onChange={onToggleSelect}
+            className="mt-1 h-4 w-4 shrink-0"
+          />
+        )}
+        <div className="min-w-0 flex-1">
           <p className="truncate text-[14px] font-bold">{artwork.title}</p>
           <p className="mt-1 text-[12px] text-[#73756f]">
             id {artwork.id} · {artwork.category ?? '카테고리 미정'}
@@ -351,18 +370,7 @@ export default function AdminArtworkRow({
 
       {auction?.status === 'CLOSED' && artwork.status !== 'REJECTED' && (
         <div className="mt-3 space-y-2 rounded-[10px] bg-[#f7f8f4] p-3">
-          <label className="block text-[12px] font-semibold">
-            진행 시간(분)
-            <input
-              type="number"
-              min="1"
-              step="1"
-              disabled={busy}
-              value={reopenMinutes}
-              onChange={(event) => setReopenMinutes(event.target.value)}
-              className="mt-1 h-10 w-full rounded-[8px] border border-[#dfe0da] bg-white px-2 text-[13px] outline-none focus:border-[#171717]"
-            />
-          </label>
+          <ReopenEndPicker value={reopenEndAt} onChange={setReopenEndAt} disabled={busy} />
           <p className="text-[11px] leading-5 text-[#73756f]">
             시작가부터 새 경매가 바로 진행됩니다. 미결제 낙찰은 무효가 되고, 결제가 완료됐거나 진행 중이면
             다시 열 수 없습니다.
