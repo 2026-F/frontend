@@ -141,6 +141,15 @@ export async function updateAuctionStatus(auctionId: number, status: AuctionStat
   await api.patch(`/api/auctions/${auctionId}/status`, { status });
 }
 
+/**
+ * 마감된 경매의 작품을 시작가부터 새 경매로 바로 연다. 응답은 새로 만든 경매다.
+ * 미결제 낙찰 정산은 서버에서 무효가 되고, 결제 완료나 진행 중인 경매는 409로 거절된다.
+ */
+export async function reopenAuction(auctionId: number, durationMinutes: number): Promise<Auction> {
+  const res = await api.post<Auction>(`/api/auctions/${auctionId}/reopen`, { durationMinutes });
+  return res.data;
+}
+
 // -----------------------------------------------------------------------
 // 인증(로그인/회원가입) 관련 API
 // 백엔드: member/controller/AuthController.java, MemberController.java
