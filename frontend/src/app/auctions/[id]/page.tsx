@@ -29,7 +29,7 @@ export default async function AuctionDetailPage({ params }: { params: { id: stri
         <ArtworkImage src={lot.artwork.imageUrl} alt={lot.artwork.title} />
       </div>
 
-      <BidPanel lot={lot} />
+      <BidPanel key={lot.auction.id} lot={lot} />
 
       <div className="flex gap-2 border-t border-[#e8e9e4] pt-5">
         <Link
