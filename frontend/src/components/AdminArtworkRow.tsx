@@ -14,7 +14,18 @@ import ReopenEndPicker, {
   reopenDurationMinutes,
   reopenEndAfterDays,
 } from '@/components/ReopenEndPicker';
-import { approveArtwork, createAuction, errorMessage, rejectArtwork, reopenAuction, unpublishArtwork, updateAuctionStatus } from '@/lib/api';
+import {
+  approveArtwork,
+  createAuction,
+  errorMessage,
+  fetchArtworkDetail,
+  fetchAuction,
+  rejectArtwork,
+  reopenAuction,
+  unpublishArtwork,
+  updateAuctionStatus,
+} from '@/lib/api';
+import { summaryOf } from '@/lib/lots';
 import type { ArtworkStatus, AuctionStatus } from '@/types';
 
 const ARTWORK_STATUS_LABELS: Record<ArtworkStatus, string> = {
@@ -64,6 +75,7 @@ export default function AdminArtworkRow({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshFailed, setRefreshFailed] = useState(false);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const now = new Date();
@@ -180,23 +192,38 @@ export default function AdminArtworkRow({
     }
   };
 
+  const refreshRow = async () => {
+    try {
+      const current = await fetchArtworkDetail(artwork.id);
+      const linkedAuction = current.auctionId == null ? null : await fetchAuction(current.auctionId);
+      if (linkedAuction && linkedAuction.artworkId !== current.id) throw new Error('Auction artwork mismatch');
+      setNextAuctionStatus(linkedAuction?.status ?? 'ONGOING');
+      onChange({ artwork: summaryOf(current), auction: linkedAuction });
+      setRefreshFailed(false);
+    } catch {
+      setRefreshFailed(true);
+    }
+  };
+
   const handleStatusChange = async () => {
     if (!auction) return;
     setError(null);
+    setRefreshFailed(false);
     setBusy(true);
     try {
       await updateAuctionStatus(auction.id, nextAuctionStatus);
-      const updatedArtwork =
-        nextAuctionStatus === 'ONGOING' && artwork.status === 'PREVIEW'
-          ? { ...artwork, status: 'IN_AUCTION' as ArtworkStatus }
-          : artwork;
-      onChange({ artwork: updatedArtwork, auction: { ...auction, status: nextAuctionStatus } });
     } catch (cause) {
       const status = axios.isAxiosError(cause) ? cause.response?.status : undefined;
       setError(status === 403 ? '관리자 권한이 필요합니다.' : errorMessage(cause, '경매 상태 변경에 실패했습니다.'));
-    } finally {
-      setBusy(false);
     }
+    await refreshRow();
+    setBusy(false);
+  };
+
+  const retryRefresh = async () => {
+    setBusy(true);
+    await refreshRow();
+    setBusy(false);
   };
 
   return (
@@ -400,6 +427,14 @@ export default function AdminArtworkRow({
       {error && (
         <p role="alert" className="mt-2 text-[12px] text-[#c13b32]">
           {error}
+        </p>
+      )}
+      {refreshFailed && (
+        <p role="status" className="mt-3 text-sm text-[#c13d32]">
+          최신 작품과 경매 상태를 불러오지 못했습니다.{' '}
+          <button type="button" className="underline" disabled={busy} onClick={retryRefresh}>
+            다시 조회
+          </button>
         </p>
       )}
     </div>

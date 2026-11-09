@@ -65,8 +65,8 @@ export type ArtworkQuery = {
   sort?: 'latest' | 'priceAsc' | 'priceDesc';
 };
 
-export async function fetchArtworkPage(params?: ArtworkQuery): Promise<PageResponse<Artwork>> {
-  const res = await api.get<PageResponse<Artwork>>('/api/artworks', { params });
+export async function fetchArtworkPage(params?: ArtworkQuery, signal?: AbortSignal): Promise<PageResponse<Artwork>> {
+  const res = await api.get<PageResponse<Artwork>>('/api/artworks', { params, signal });
   return res.data;
 }
 
