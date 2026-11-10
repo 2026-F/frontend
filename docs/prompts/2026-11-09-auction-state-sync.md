@@ -40,7 +40,17 @@
 
 화면 캡처에는 테스트 데이터만 사용했다. [상세](../screenshots/issue53/auction-detail.png) · [목록](../screenshots/issue53/auction-list.png) · [관리자](../screenshots/issue53/admin-refresh.png)
 
-미검증: Docker Desktop 엔진 시작 오류로 격리된 PostgreSQL·Redis를 준비하지 못했다. 두 실제 계정의 입찰·연장·마감과 정산 생성, 배포 환경 검증이 남아 있다.
+초기 검증 당시 Docker Desktop 엔진 시작 오류로 실제 백엔드 연동은 보류했다.
+
+## Docker 실제 백엔드 추가 검증
+
+Docker Desktop 복구 후 FE PR #67 (`4724289`)과 BE develop (`d12a543`)을 격리된 PostgreSQL 16·Redis 7에 연결했다. Kafka를 끄고 백엔드는 UTC, 브라우저는 Asia/Seoul로 설정했다.
+
+- 두 실제 계정으로 로그인했다. A의 입찰이 B 화면에 SSE로 반영됐고, B의 마감 직전 입찰로 경매가 연장됐다. 연결 차단 후 새로고침으로 입찰 이력이 중복 없이 복구됐고, 열어 둔 목록도 새 가격을 표시했다.
+- 자동 마감이 두 상세 화면에 반영됐다. PostgreSQL에서 낙찰 정산 1건을 확인했다. 관리자 재오픈 API 호출 후 열린 목록에 새 경매 링크가 표시됐고, 비로그인 입찰은 401로 거절됐다.
+- BE #96 재현: 관리자 수동 시작 후 DB 기반 조회는 `ONGOING`이었지만 실시간 조회는 `PREVIEW`였다. 마감 전 수동 `CLOSED` 요청도 204로 수락됐다.
+
+미검증: 실제 백엔드에서 새로고침 없는 재연결, 수동 마감과 스케줄러 경합 시 정산 1회 생성, 배포 환경. [#53 검증 결과](https://github.com/2026-F/frontend/issues/53#issuecomment-6755663849)
 
 ## 남은 작업
 
