@@ -15,11 +15,9 @@ import ReopenEndPicker, {
   reopenDurationMinutes,
   reopenEndAfterDays,
 } from '@/components/ReopenEndPicker';
-import { fetchAllArtworksByStatus } from '@/lib/adminArtworks';
-import { errorMessage, fetchAuction, reopenAuction } from '@/lib/api';
-import type { Artwork, ArtworkStatus, Auction } from '@/types';
-
-export type AdminRow = { artwork: Artwork; auction: Auction | null };
+import { fetchAdminRow, fetchAllArtworksByStatus, type AdminRow } from '@/lib/adminArtworks';
+import { errorMessage, reopenAuction } from '@/lib/api';
+import type { ArtworkStatus } from '@/types';
 
 const STATUSES: ArtworkStatus[] = ['PENDING_REVIEW', 'PREVIEW', 'IN_AUCTION', 'SOLD', 'REJECTED'];
 // 목록에서 더 신경써야 할 상태(심사 대기 등)가 위로 오도록 정렬 순서를 정해둔다.
@@ -39,50 +37,45 @@ export default function AdminArtworksPage() {
   const [rows, setRows] = useState<AdminRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkEndAt, setBulkEndAt] = useState(() => reopenEndAfterDays(7));
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkResult, setBulkResult] = useState<string | null>(null);
   const [bulkFailures, setBulkFailures] = useState<string[]>([]);
 
-  const load = async () => {
-    setLoading(true);
-    setError(null);
-    const controller = new AbortController();
-    try {
-      // GET /api/artworks는 status 파라미터를 하나만 받을 수 있어서,
-      // 보고 싶은 상태 5개를 각각 호출한 뒤 하나로 합친다.
-      const byStatus = await Promise.all(STATUSES.map((status) => fetchAllArtworksByStatus(status, controller.signal)));
-      const artworks = [...new Map(byStatus.flat().map((artwork) => [artwork.id, artwork])).values()];
-
-      const withAuctions = await Promise.all(
-        artworks.map(async (artwork): Promise<AdminRow> => {
-          if (!artwork.auctionId) return { artwork, auction: null };
-          try {
-            const auction = await fetchAuction(artwork.auctionId);
-            return { artwork, auction };
-          } catch {
-            return { artwork, auction: null };
-          }
-        }),
-      );
-
-      withAuctions.sort((a, b) => {
-        const order = STATUS_ORDER[a.artwork.status] - STATUS_ORDER[b.artwork.status];
-        return order !== 0 ? order : b.artwork.id - a.artwork.id;
-      });
-      setRows(withAuctions);
-    } catch (cause) {
-      controller.abort();
-      setError(errorMessage(cause, '작품 목록을 불러오지 못했습니다.'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    load();
-  }, []);
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const byStatus = await Promise.all(STATUSES.map((status) => fetchAllArtworksByStatus(status, signal)));
+        const unique = new Map(byStatus.flat().map((artwork) => [artwork.id, artwork]));
+        const artworks = [...unique.values()].sort(
+          (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || b.id - a.id,
+        );
+        const loadedRows: AdminRow[] = [];
+        for (let start = 0; start < artworks.length; start += 6) {
+          const batch = artworks.slice(start, start + 6);
+          loadedRows.push(...await Promise.all(batch.map((artwork) => fetchAdminRow(artwork, signal))));
+        }
+        if (!signal.aborted) setRows(loadedRows);
+      } catch (cause) {
+        if (signal.aborted) return;
+        setError(errorMessage(cause, '작품 목록을 불러오지 못했습니다.'));
+        controller.abort();
+        setLoading(false);
+      } finally {
+        if (!signal.aborted) setLoading(false);
+      }
+    }
+
+    void load();
+    return () => controller.abort();
+  }, [loadAttempt]);
 
   const updateRow = (artworkId: number, next: AdminRow) => {
     setRows((prev) => prev.map((row) => (row.artwork.id === artworkId ? next : row)));
@@ -134,6 +127,7 @@ export default function AdminArtworksPage() {
         const created = await reopenAuction(row.auction.id, minutes);
         updateRow(row.artwork.id, {
           artwork: { ...row.artwork, status: 'IN_AUCTION', auctionId: created.id },
+          auctionStatus: 'loaded',
           auction: created,
         });
         opened += 1;
@@ -159,7 +153,7 @@ export default function AdminArtworksPage() {
           <p role="alert" className="text-[13px] text-[#c13b32]">
             {error}
           </p>
-          <button type="button" onClick={load} className="mt-2 text-[13px] font-bold underline">
+          <button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)} className="mt-2 text-[13px] font-bold underline">
             다시 불러오기
           </button>
         </div>
@@ -210,9 +204,8 @@ export default function AdminArtworksPage() {
           {rows.length === 0 && <p className="text-[13px] text-[#73756f]">등록된 작품이 없습니다.</p>}
           {rows.map((row) => (
             <AdminArtworkRow
-              key={`${row.artwork.id}-${row.auction?.id ?? 'none'}`}
-              artwork={row.artwork}
-              auction={row.auction}
+              key={`${row.artwork.id}-${row.artwork.auctionId ?? 'none'}`}
+              row={row}
               onChange={(next) => updateRow(row.artwork.id, next)}
               selected={selectedIds.has(row.artwork.id)}
               onToggleSelect={isReopenable(row) ? () => toggleOne(row.artwork.id) : undefined}
