@@ -66,6 +66,7 @@ export default function AdminArtworksPage() {
       } catch (cause) {
         if (signal.aborted) return;
         setError(errorMessage(cause, '작품 목록을 불러오지 못했습니다.'));
+        // 남은 요청을 취소하면 finally가 로딩 종료를 건너뛰므로 여기서 종료한다.
         controller.abort();
         setLoading(false);
       } finally {
@@ -153,7 +154,14 @@ export default function AdminArtworksPage() {
           <p role="alert" className="text-[13px] text-[#c13b32]">
             {error}
           </p>
-          <button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)} className="mt-2 text-[13px] font-bold underline">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedIds(new Set());
+              setLoadAttempt((attempt) => attempt + 1);
+            }}
+            className="mt-2 text-[13px] font-bold underline"
+          >
             다시 불러오기
           </button>
         </div>

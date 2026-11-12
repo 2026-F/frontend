@@ -45,6 +45,12 @@ const AUCTION_STATUS_LABELS: Record<AuctionStatus, string> = {
 
 const AUCTION_STATUSES: AuctionStatus[] = ['SCHEDULED', 'PREVIEW', 'ONGOING', 'EXTENDED', 'CLOSED'];
 
+const LOOKUP_FAILURE_MESSAGE = {
+  auction: '연결 경매를 불러오지 못했습니다.',
+  mismatch: '작품과 연결 경매 정보가 일치하지 않습니다.',
+  artwork: '최신 작품 정보를 불러오지 못했습니다.',
+};
+
 // <input type="datetime-local">가 쓰는 "YYYY-MM-DDTHH:mm" 형식으로 바꿔준다 (기본값 채우기용).
 function toLocalInputValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -200,7 +206,7 @@ export default function AdminArtworkRow({
       setNextAuctionStatus(refreshed.auction?.status ?? 'ONGOING');
       onChange(refreshed);
     } catch {
-      onChange({ artwork, auctionStatus: 'failed', auction: null });
+      onChange({ artwork, auctionStatus: 'failed', auction: null, failure: 'artwork' });
     }
   };
 
@@ -429,7 +435,7 @@ export default function AdminArtworkRow({
       )}
       {auctionStatus === 'failed' && (
         <p role="status" className="mt-3 text-sm text-[#c13d32]">
-          최신 작품과 경매 상태를 불러오지 못했습니다.{' '}
+          {LOOKUP_FAILURE_MESSAGE[row.failure]}{' '}
           <button type="button" className="underline" disabled={busy} onClick={retryRefresh}>
             다시 조회
           </button>

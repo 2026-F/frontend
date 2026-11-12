@@ -2,7 +2,8 @@ import { fetchArtworkPage, fetchAuction } from '@/lib/api';
 import type { Artwork, ArtworkStatus, Auction } from '@/types';
 
 type AuctionLookup =
-  | { auctionStatus: 'none' | 'failed'; auction: null }
+  | { auctionStatus: 'none'; auction: null }
+  | { auctionStatus: 'failed'; auction: null; failure: 'auction' | 'mismatch' | 'artwork' }
   | { auctionStatus: 'loaded'; auction: Auction };
 
 export type AdminRow = { artwork: Artwork } & AuctionLookup;
@@ -15,11 +16,11 @@ export async function fetchAdminRow(artwork: Artwork, signal?: AbortSignal): Pro
     if (auction.id === artwork.auctionId && auction.artworkId === artwork.id) {
       return { artwork, auctionStatus: 'loaded', auction };
     }
+    return { artwork, auctionStatus: 'failed', auction: null, failure: 'mismatch' };
   } catch (error) {
     if (signal?.aborted) throw error;
+    return { artwork, auctionStatus: 'failed', auction: null, failure: 'auction' };
   }
-
-  return { artwork, auctionStatus: 'failed', auction: null };
 }
 
 export async function fetchAllArtworksByStatus(status: ArtworkStatus, signal: AbortSignal): Promise<Artwork[]> {
