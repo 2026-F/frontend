@@ -17,16 +17,17 @@ function item(artwork: Artwork, auction: Auction | null): CatalogItem {
 export function summaryOf(detail: ArtworkDetail): Artwork {
   return { ...detail, artistId: detail.artist?.id, artistName: detail.artist?.name };
 }
-export async function getLots(params?: ArtworkQuery): Promise<PageResponse<CatalogItem>> {
-  const page = await fetchArtworkPage(params);
+export async function getLots(params?: ArtworkQuery, signal?: AbortSignal): Promise<PageResponse<CatalogItem>> {
+  const page = await fetchArtworkPage(params, signal);
   const content = await Promise.all(
     page.content.map(async (artwork) => {
       if (artwork.auctionId == null) return item(artwork, null);
       try {
-        const auction = await fetchAuction(artwork.auctionId);
+        const auction = await fetchAuction(artwork.auctionId, signal);
         if (auction.artworkId !== artwork.id) throw new Error('경매 연결 불일치');
         return item(artwork, auction);
       } catch (error) {
+        if (signal?.aborted) throw error;
         return {
           ...item(artwork, null),
           auctionError: requestFailure(error, '경매 정보를 불러오지 못했습니다.'),
