@@ -5,8 +5,9 @@ import { priceOf, itemHref } from '@/lib/catalogDisplay';
 import { AuctionStatusBadge } from '@/components/StatusBadge';
 import ArtworkImage from '@/components/ArtworkImage';
 import CountdownTimer from '@/components/CountdownTimer';
+import type { AuctionClock } from '@/lib/auctionClock';
 
-export default function AuctionCard({ lot }: { lot: CatalogItem }) {
+export default function AuctionCard({ lot, clock }: { lot: CatalogItem; clock?: AuctionClock | null }) {
   const { artwork, auction } = lot;
   const price = priceOf(artwork, auction);
   return (
@@ -43,6 +44,8 @@ export default function AuctionCard({ lot }: { lot: CatalogItem }) {
         {auction && (auction.status === 'ONGOING' || auction.status === 'EXTENDED') && (
           <CountdownTimer
             target={auction.auctionEndAt}
+            clock={clock}
+            awaitingClose={clock !== undefined}
             extended={auction.status === 'EXTENDED'}
             className="text-xs"
           />

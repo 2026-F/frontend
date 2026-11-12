@@ -65,8 +65,8 @@ export type ArtworkQuery = {
   sort?: 'latest' | 'priceAsc' | 'priceDesc';
 };
 
-export async function fetchArtworkPage(params?: ArtworkQuery): Promise<PageResponse<Artwork>> {
-  const res = await api.get<PageResponse<Artwork>>('/api/artworks', { params });
+export async function fetchArtworkPage(params?: ArtworkQuery, signal?: AbortSignal): Promise<PageResponse<Artwork>> {
+  const res = await api.get<PageResponse<Artwork>>('/api/artworks', { params, signal });
   return res.data;
 }
 
@@ -245,8 +245,13 @@ export function errorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export async function fetchAuction(auctionId: number): Promise<Auction> {
-  const res = await api.get<Auction>(`/api/auctions/${auctionId}/current-price`);
+export async function fetchAuction(auctionId: number, signal?: AbortSignal): Promise<Auction> {
+  const res = await api.get<Auction>(`/api/auctions/${auctionId}/current-price`, { signal });
+  return res.data;
+}
+
+export async function fetchAuctionLive(auctionId: number, signal?: AbortSignal): Promise<AuctionLiveView> {
+  const res = await api.get<AuctionLiveView>(`/api/auctions/${auctionId}/live`, { signal });
   return res.data;
 }
 
@@ -257,8 +262,8 @@ export async function submitBid(auctionId: number, price: number): Promise<BidRe
 }
 
 /** 경매의 입찰 기록 (최신순 정렬은 호출하는 쪽에서 한다). 취소된 입찰도 canceled=true로 포함된다. */
-export async function fetchBids(auctionId: number): Promise<Bid[]> {
-  const res = await api.get<Bid[]>(`/api/auctions/${auctionId}/bids`);
+export async function fetchBids(auctionId: number, signal?: AbortSignal): Promise<Bid[]> {
+  const res = await api.get<Bid[]>(`/api/auctions/${auctionId}/bids`, { signal });
   return res.data;
 }
 

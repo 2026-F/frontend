@@ -1,42 +1,28 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import axios from 'axios';
-import type { AuctionLiveView, Bid, Lot } from '@/types';
-import {
-  errorMessage,
-  fetchAuction,
-  fetchBids,
-  submitBid,
-  subscribeAuctionEvents,
-} from '@/lib/api';
+import type { Lot } from '@/types';
+import { errorMessage, submitBid } from '@/lib/api';
+import { auctionRemaining } from '@/lib/auctionClock';
 import { useAuth } from '@/lib/auth';
 import { formatDateTime, formatWon } from '@/lib/format';
 import { AuctionStatusBadge } from '@/components/StatusBadge';
 import { priceOf } from '@/lib/catalogDisplay';
-import CountdownTimer from '@/components/CountdownTimer';
-
-// SSE가 끊겼을 때만 현재가를 다시 조회하는 주기
-const FALLBACK_POLL_MS = 5000;
-
-function latestFirst(bids: Bid[]): Bid[] {
-  return bids.filter((bid) => !bid.canceled).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
+import { CountdownDisplay, useCountdown } from '@/components/CountdownTimer';
+import { useAuctionLive } from '@/components/useAuctionLive';
 
 export default function BidPanel({ lot }: { lot: Lot }) {
   const member = useAuth((s) => s.member);
   const accessToken = useAuth((s) => s.accessToken);
-  const [auction, setAuction] = useState(lot.auction);
+  const { auction, clock, bids, statusFailed, historyFailed, refresh } = useAuctionLive(lot.auction);
   const [amount, setAmount] = useState(lot.auction.currentPrice + lot.auction.minBidUnit);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [bids, setBids] = useState<Bid[]>([]);
-  const [sseConnected, setSseConnected] = useState(false);
-  // 늦게 도착한 이전 상태 이벤트를 무시하기 위한 마지막 version
-  const lastVersion = useRef(-1);
-
-  const isBiddable = auction.status === 'ONGOING' || auction.status === 'EXTENDED';
+  const remaining = useCountdown(auction.auctionEndAt, clock);
+  const isOngoing = auction.status === 'ONGOING' || auction.status === 'EXTENDED';
+  const isBiddable = isOngoing && remaining !== null && !remaining.isOver;
   const minNext = auction.currentPrice + auction.minBidUnit;
   const isLoggedIn = Boolean(member && accessToken);
 
@@ -45,67 +31,6 @@ export default function BidPanel({ lot }: { lot: Lot }) {
     setAmount((prev) => (prev < minNext ? minNext : prev));
   }, [minNext]);
 
-  const reloadBids = useCallback(() => {
-    fetchBids(auction.id)
-      .then((list) => setBids(latestFirst(list)))
-      .catch(() => {});
-  }, [auction.id]);
-
-  const applyLiveView = useCallback(
-    (view: AuctionLiveView) => {
-      if (view.version < lastVersion.current) return;
-      lastVersion.current = view.version;
-      setAuction((prev) => ({
-        ...prev,
-        currentPrice: view.currentPrice,
-        minBidUnit: view.minBidUnit,
-        auctionEndAt: view.auctionEndAt,
-        status: view.status,
-      }));
-      if (view.reason === 'BID' || view.reason === 'BID_CANCELED') reloadBids();
-    },
-    [reloadBids],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-
-    // 상세에서 조회한 경매를 다시 확인한다.
-    fetchAuction(auction.id)
-      .then((real) => {
-        if (!cancelled) setAuction(real);
-      })
-      .catch(() => {
-        setError('경매 정보를 갱신하지 못했습니다. 다시 확인해 주세요.');
-      });
-    reloadBids();
-
-    const unsubscribe = subscribeAuctionEvents(auction.id, applyLiveView, {
-      onOpen: () => setSseConnected(true),
-      onError: () => setSseConnected(false),
-    });
-
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [auction.id, applyLiveView, reloadBids]);
-
-  // SSE가 끊긴 동안에만 현재가를 주기적으로 다시 조회한다. EventSource는 스스로 재연결을 시도한다.
-  useEffect(() => {
-    if (sseConnected) return;
-    const poll = setInterval(() => {
-      fetchAuction(auction.id)
-        .then((real) => {
-          setAuction((prev) =>
-            real.currentPrice !== prev.currentPrice || real.status !== prev.status ? real : prev,
-          );
-        })
-        .catch(() => {});
-    }, FALLBACK_POLL_MS);
-    return () => clearInterval(poll);
-  }, [auction.id, sseConnected]);
-
   const quickAdds = useMemo(
     () => [1, 5, 10].map((multiplier) => auction.minBidUnit * multiplier),
     [auction.minBidUnit],
@@ -113,19 +38,13 @@ export default function BidPanel({ lot }: { lot: Lot }) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!isLoggedIn) return;
+    const atSubmit = auctionRemaining(auction.auctionEndAt, clock, performance.now());
+    if (!isLoggedIn || !isBiddable || !atSubmit || atSubmit.isOver || submitting || amount < minNext) return;
     setSubmitting(true);
     setError(null);
     try {
-      const result = await submitBid(auction.id, amount);
-      setAuction((prev) => ({
-        ...prev,
-        currentPrice: result.currentPrice,
-        auctionEndAt: result.auctionEndAt,
-        status: result.extended ? 'EXTENDED' : prev.status,
-      }));
-      setAmount(result.currentPrice + auction.minBidUnit);
-      reloadBids();
+      await submitBid(auction.id, amount);
+      await refresh();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         setError('로그인이 만료되었습니다. 다시 로그인해 주세요.');
@@ -159,16 +78,21 @@ export default function BidPanel({ lot }: { lot: Lot }) {
           </div>
           <div className="text-right">
             <p className="text-xs text-[#bfc1bb]">마감까지</p>
-            <CountdownTimer
-              target={auction.auctionEndAt}
-              extended={auction.status === 'EXTENDED'}
-              className="text-lg"
-              tone="dark"
-            />
+            {auction.status === 'CLOSED' ? (
+              <span className="font-semibold text-[#bfc1bb]">마감되었습니다</span>
+            ) : (
+              <CountdownDisplay
+                remaining={remaining}
+                extended={auction.status === 'EXTENDED'}
+                className="text-lg"
+                tone="dark"
+                awaitingClose
+              />
+            )}
           </div>
         </div>
         <p className="text-xs text-[#bfc1bb]">
-          최소 입찰 단위 {formatWon(auction.minBidUnit)} · 마감 예정{' '}
+          최소 입찰 단위 {formatWon(auction.minBidUnit)} · 서버 기준 마감 예정{' '}
           {formatDateTime(auction.auctionEndAt)}
         </p>
 
@@ -212,8 +136,6 @@ export default function BidPanel({ lot }: { lot: Lot }) {
               ))}
             </div>
 
-            {error && <p className="text-sm text-[#ff6761]">{error}</p>}
-
             <button
               type="submit"
               disabled={submitting || amount < minNext}
@@ -229,15 +151,28 @@ export default function BidPanel({ lot }: { lot: Lot }) {
           <p className="border-t border-white/20 pt-4 text-sm text-[#bfc1bb]">
             {auction.status === 'CLOSED'
               ? '이미 마감된 경매입니다.'
-              : '아직 입찰이 시작되지 않았습니다.'}
+              : isOngoing
+                ? '마감 시각을 확인하는 동안 입찰할 수 없습니다.'
+                : '아직 입찰이 시작되지 않았습니다.'}
           </p>
+        )}
+        {error && <p role="alert" className="text-sm text-[#ff6761]">{error}</p>}
+        {statusFailed && (
+          <button type="button" className="text-left text-sm underline" onClick={() => void refresh()}>
+            경매 정보를 갱신하지 못했습니다. 다시 시도
+          </button>
         )}
       </div>
 
       <div className="flex flex-col gap-3 rounded-xl border border-[#171717] bg-[#171717] p-6 text-white">
         <p className="text-sm font-semibold text-white">실시간 입찰 내역</p>
+        {historyFailed && (
+          <button type="button" className="text-left text-sm underline" onClick={() => void refresh()}>
+            입찰 내역을 갱신하지 못했습니다. 다시 시도
+          </button>
+        )}
         <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
-          {bids.length === 0 ? (
+          {bids.length === 0 && !historyFailed ? (
             <p className="text-sm text-[#bfc1bb]">아직 입찰 내역이 없습니다.</p>
           ) : (
             bids.map((entry) => (
