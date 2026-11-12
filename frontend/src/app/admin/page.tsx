@@ -15,7 +15,8 @@ import ReopenEndPicker, {
   reopenDurationMinutes,
   reopenEndAfterDays,
 } from '@/components/ReopenEndPicker';
-import { errorMessage, fetchArtworks, fetchAuction, reopenAuction } from '@/lib/api';
+import { fetchAllArtworksByStatus } from '@/lib/adminArtworks';
+import { errorMessage, fetchAuction, reopenAuction } from '@/lib/api';
 import type { Artwork, ArtworkStatus, Auction } from '@/types';
 
 export type AdminRow = { artwork: Artwork; auction: Auction | null };
@@ -47,11 +48,12 @@ export default function AdminArtworksPage() {
   const load = async () => {
     setLoading(true);
     setError(null);
+    const controller = new AbortController();
     try {
       // GET /api/artworks는 status 파라미터를 하나만 받을 수 있어서,
       // 보고 싶은 상태 5개를 각각 호출한 뒤 하나로 합친다.
-      const byStatus = await Promise.all(STATUSES.map((status) => fetchArtworks({ status, size: 100 })));
-      const artworks = byStatus.flat();
+      const byStatus = await Promise.all(STATUSES.map((status) => fetchAllArtworksByStatus(status, controller.signal)));
+      const artworks = [...new Map(byStatus.flat().map((artwork) => [artwork.id, artwork])).values()];
 
       const withAuctions = await Promise.all(
         artworks.map(async (artwork): Promise<AdminRow> => {
@@ -71,6 +73,7 @@ export default function AdminArtworksPage() {
       });
       setRows(withAuctions);
     } catch (cause) {
+      controller.abort();
       setError(errorMessage(cause, '작품 목록을 불러오지 못했습니다.'));
     } finally {
       setLoading(false);
