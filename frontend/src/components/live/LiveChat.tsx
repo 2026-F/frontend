@@ -10,7 +10,7 @@ import { useLiveChat } from "./useLiveChat";
  * 라이브 영상 위 아래쪽에 겹쳐 놓는 채팅. LivePortraitShell 안에서 쓴다.
  * 대화는 누구나 보고, 입력창은 로그인한 회원에게만 보인다. 권한은 서버가 다시 확인한다.
  */
-export default function LiveChat({ auctionId }: { auctionId: number }) {
+export default function LiveChat({ auctionId, above }: { auctionId: number; above?: React.ReactNode }) {
   const member = useAuth((state) => state.member);
   const { messages, loadFailed, sending, sendError, send } = useLiveChat(auctionId);
   const [draft, setDraft] = useState("");
@@ -51,7 +51,7 @@ export default function LiveChat({ auctionId }: { auctionId: number }) {
         ref={listRef}
         onScroll={handleScroll}
         aria-live="polite"
-        className="scrollbar-hide flex max-h-[38dvh] flex-col gap-1.5 overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_24%)]"
+        className="scrollbar-hide flex max-h-[30dvh] flex-col gap-1.5 overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_24%)]"
       >
         {loadFailed && messages.length === 0 && (
           <p className="text-xs text-white/70">대화를 불러오지 못했습니다.</p>
@@ -68,6 +68,9 @@ export default function LiveChat({ auctionId }: { auctionId: number }) {
           </p>
         ))}
       </div>
+
+      {/* 대화 목록과 입력창 사이 자리. 입찰 막대처럼 채팅과 함께 아래에 붙어야 하는 것을 넣는다. */}
+      {above}
 
       {sendError && <p className="text-xs text-[#ffb4b0]">{sendError}</p>}
 

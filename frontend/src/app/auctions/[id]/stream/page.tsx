@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { endStream, issueStageToken, qrCodeUrl, startStream } from "@/lib/api";
+import LiveBidBar from "@/components/live/LiveBidBar";
 import LiveChat from "@/components/live/LiveChat";
 import LivePortraitShell,{ LiveBadge, LiveScrim } from "@/components/live/LivePortraitShell";
 import type { Livestream } from "@/types";
@@ -177,7 +178,7 @@ export default function StreamManagePage() {
       )}
 
       {/* 진행자도 같은 채팅에 참여한다. 방송 중에만 보낼 수 있어서 방송 중일 때만 띄운다. */}
-      {isLive && <LiveChat auctionId={auctionId} />}
+      {isLive && <LiveChat auctionId={auctionId} above={<LiveBidBar auctionId={auctionId} readOnly />} />}
     </LivePortraitShell>
   );
 }

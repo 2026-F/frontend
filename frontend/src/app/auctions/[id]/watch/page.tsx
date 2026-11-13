@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { fetchStream, issueStageToken } from "@/lib/api";
+import LiveBidBar from "@/components/live/LiveBidBar";
 import LiveChat from "@/components/live/LiveChat";
 import LivePortraitShell,{ LiveBadge, LiveScrim } from "@/components/live/LivePortraitShell";
 import type { Stage as IvsStage, StageParticipantInfo, StageStream } from "amazon-ivs-web-broadcast";
@@ -118,7 +119,7 @@ export default function WatchStreamPage() {
         <p className="absolute inset-x-6 top-1/3 text-center text-sm text-white/80">{status}</p>
       )}
 
-      <LiveChat auctionId={auctionId} />
+      <LiveChat auctionId={auctionId} above={<LiveBidBar auctionId={auctionId} />} />
     </LivePortraitShell>
   );
 }
