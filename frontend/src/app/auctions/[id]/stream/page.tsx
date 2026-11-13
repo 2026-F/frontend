@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { endStream, issueStageToken, qrCodeUrl, startStream } from "@/lib/api";
-import LivePortraitShell, { LiveBadge, LiveScrim } from "@/components/live/LivePortraitShell";
+import LiveChat from "@/components/live/LiveChat";
+import LivePortraitShell,{ LiveBadge, LiveScrim } from "@/components/live/LivePortraitShell";
 import type { Livestream } from "@/types";
 import type { Stage as IvsStage } from "amazon-ivs-web-broadcast";
 
@@ -170,10 +171,13 @@ export default function StreamManagePage() {
       )}
 
       {error && (
-        <p className="absolute inset-x-4 bottom-[max(16px,env(safe-area-inset-bottom))] rounded-xl bg-[#e0443e]/90 px-4 py-2.5 text-center text-sm">
+        <p className="absolute inset-x-4 top-[72px] rounded-xl bg-[#e0443e]/90 px-4 py-2.5 text-center text-sm">
           {error}
         </p>
       )}
+
+      {/* 진행자도 같은 채팅에 참여한다. 방송 중에만 보낼 수 있어서 방송 중일 때만 띄운다. */}
+      {isLive && <LiveChat auctionId={auctionId} />}
     </LivePortraitShell>
   );
 }

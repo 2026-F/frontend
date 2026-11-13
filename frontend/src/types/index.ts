@@ -186,6 +186,18 @@ export interface StageToken {
   expiresAt: string;
 }
 
+// 라이브 채팅 메시지. GET/POST /api/auctions/{auctionId}/chat/messages 응답과
+// SSE auction-chat 이벤트가 같은 모양이다. host는 그 경매의 위탁자(진행자)가 보낸 메시지인지.
+export interface ChatMessage {
+  id: number;
+  auctionId: number;
+  senderId: number;
+  senderName: string;
+  host: boolean;
+  content: string;
+  createdAt: string;
+}
+
 export type MediaType = "PHOTO" | "VIDEO" | "MODEL_3D";
 
 // POST /api/artworks/{artworkId}/media/presigned-url 응답
