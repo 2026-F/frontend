@@ -8,7 +8,7 @@
 //  - 경매가 마감됨: 같은 작품을 새 경매로 다시 여는 폼
 import axios from 'axios';
 import { useState } from 'react';
-import type { AdminRow } from '@/app/admin/page';
+import { fetchAdminRow, type AdminRow } from '@/lib/adminArtworks';
 import ReopenEndPicker, {
   REOPEN_END_ERROR,
   reopenDurationMinutes,
@@ -19,7 +19,6 @@ import {
   createAuction,
   errorMessage,
   fetchArtworkDetail,
-  fetchAuction,
   rejectArtwork,
   reopenAuction,
   unpublishArtwork,
@@ -46,6 +45,12 @@ const AUCTION_STATUS_LABELS: Record<AuctionStatus, string> = {
 
 const AUCTION_STATUSES: AuctionStatus[] = ['SCHEDULED', 'PREVIEW', 'ONGOING', 'EXTENDED', 'CLOSED'];
 
+const LOOKUP_FAILURE_MESSAGE = {
+  auction: '연결 경매를 불러오지 못했습니다.',
+  mismatch: '작품과 연결 경매 정보가 일치하지 않습니다.',
+  artwork: '최신 작품 정보를 불러오지 못했습니다.',
+};
+
 // <input type="datetime-local">가 쓰는 "YYYY-MM-DDTHH:mm" 형식으로 바꿔준다 (기본값 채우기용).
 function toLocalInputValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -60,22 +65,20 @@ function toBackendDateTime(value: string): string {
 }
 
 export default function AdminArtworkRow({
-  artwork,
-  auction,
+  row,
   onChange,
   selected,
   onToggleSelect,
 }: {
-  artwork: AdminRow['artwork'];
-  auction: AdminRow['auction'];
+  row: AdminRow;
   onChange: (next: AdminRow) => void;
   selected?: boolean;
   // 다시 열 수 있는 작품에만 넘긴다. 없으면 선택 체크박스를 보여주지 않는다.
   onToggleSelect?: () => void;
 }) {
+  const { artwork, auction, auctionStatus } = row;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [refreshFailed, setRefreshFailed] = useState(false);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const now = new Date();
@@ -93,7 +96,7 @@ export default function AdminArtworkRow({
     setBusy(true);
     try {
       await approveArtwork(artwork.id);
-      onChange({ artwork: { ...artwork, status: 'PREVIEW' }, auction });
+      onChange({ ...row, artwork: { ...artwork, status: 'PREVIEW' } });
     } catch (cause) {
       setError(errorMessage(cause, '승인에 실패했습니다.'));
     } finally {
@@ -106,7 +109,7 @@ export default function AdminArtworkRow({
     setBusy(true);
     try {
       await rejectArtwork(artwork.id);
-      onChange({ artwork: { ...artwork, status: 'REJECTED' }, auction });
+      onChange({ ...row, artwork: { ...artwork, status: 'REJECTED' } });
     } catch (cause) {
       setError(errorMessage(cause, '반려에 실패했습니다.'));
     } finally {
@@ -151,7 +154,7 @@ export default function AdminArtworkRow({
       });
       setNextAuctionStatus(created.status);
       setShowCreateForm(false);
-      onChange({ artwork: { ...artwork, auctionId: created.id }, auction: created });
+      onChange({ artwork: { ...artwork, auctionId: created.id }, auctionStatus: 'loaded', auction: created });
     } catch (cause) {
       setError(errorMessage(cause, '경매 생성에 실패했습니다.'));
     } finally {
@@ -171,7 +174,11 @@ export default function AdminArtworkRow({
     try {
       const created = await reopenAuction(auction.id, minutes);
       setNextAuctionStatus(created.status);
-      onChange({ artwork: { ...artwork, status: 'IN_AUCTION', auctionId: created.id }, auction: created });
+      onChange({
+        artwork: { ...artwork, status: 'IN_AUCTION', auctionId: created.id },
+        auctionStatus: 'loaded',
+        auction: created,
+      });
     } catch (cause) {
       setError(errorMessage(cause, '경매를 다시 열지 못했습니다.'));
     } finally {
@@ -184,7 +191,7 @@ export default function AdminArtworkRow({
     setBusy(true);
     try {
       await unpublishArtwork(artwork.id);
-      onChange({ artwork: { ...artwork, status: 'REJECTED' }, auction });
+      onChange({ ...row, artwork: { ...artwork, status: 'REJECTED' } });
     } catch (cause) {
       setError(errorMessage(cause, '작품을 내리지 못했습니다.'));
     } finally {
@@ -195,20 +202,17 @@ export default function AdminArtworkRow({
   const refreshRow = async () => {
     try {
       const current = await fetchArtworkDetail(artwork.id);
-      const linkedAuction = current.auctionId == null ? null : await fetchAuction(current.auctionId);
-      if (linkedAuction && linkedAuction.artworkId !== current.id) throw new Error('Auction artwork mismatch');
-      setNextAuctionStatus(linkedAuction?.status ?? 'ONGOING');
-      onChange({ artwork: summaryOf(current), auction: linkedAuction });
-      setRefreshFailed(false);
+      const refreshed = await fetchAdminRow(summaryOf(current));
+      setNextAuctionStatus(refreshed.auction?.status ?? 'ONGOING');
+      onChange(refreshed);
     } catch {
-      setRefreshFailed(true);
+      onChange({ artwork, auctionStatus: 'failed', auction: null, failure: 'artwork' });
     }
   };
 
   const handleStatusChange = async () => {
     if (!auction) return;
     setError(null);
-    setRefreshFailed(false);
     setBusy(true);
     try {
       await updateAuctionStatus(auction.id, nextAuctionStatus);
@@ -270,7 +274,7 @@ export default function AdminArtworkRow({
         </div>
       )}
 
-      {!auction && artwork.status !== 'PENDING_REVIEW' && artwork.status !== 'REJECTED' && (
+      {auctionStatus === 'none' && artwork.status !== 'PENDING_REVIEW' && artwork.status !== 'REJECTED' && (
         <div className="mt-3">
           {!showCreateForm ? (
             <button
@@ -429,9 +433,9 @@ export default function AdminArtworkRow({
           {error}
         </p>
       )}
-      {refreshFailed && (
+      {auctionStatus === 'failed' && (
         <p role="status" className="mt-3 text-sm text-[#c13d32]">
-          최신 작품과 경매 상태를 불러오지 못했습니다.{' '}
+          {LOOKUP_FAILURE_MESSAGE[row.failure]}{' '}
           <button type="button" className="underline" disabled={busy} onClick={retryRefresh}>
             다시 조회
           </button>
