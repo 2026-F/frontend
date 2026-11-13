@@ -3,10 +3,20 @@
 // 브라우저 상호작용이 필요하니까 맨 위에 "use client"를 붙여서 "이 파일은 브라우저에서 실행되는 컴포넌트다"라고 선언해야 함.
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { endStream, issueStageToken, qrCodeUrl, startStream } from "@/lib/api";
+import LivePortraitShell, { LiveBadge, LiveScrim } from "@/components/live/LivePortraitShell";
 import type { Livestream } from "@/types";
 import type { Stage as IvsStage } from "amazon-ivs-web-broadcast";
+
+// 쇼츠처럼 세로(9:16)로 찍는다. ideal이라 카메라가 못 맞추면 가까운 값으로 열리고,
+// 그 경우에도 미리보기와 시청 화면이 object-cover로 가운데를 잘라 세로를 채운다.
+const PORTRAIT_VIDEO: MediaTrackConstraints = {
+  width: { ideal: 720 },
+  height: { ideal: 1280 },
+  aspectRatio: { ideal: 9 / 16 },
+};
 
 export default function StreamManagePage() {
   // URL이 /auctions/1/stream 이면 params.id === "1" (문자열)이 들어옴.
@@ -16,11 +26,13 @@ export default function StreamManagePage() {
   const [stream, setStream] = useState<Livestream | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showShare, setShowShare] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const stageRef = useRef<IvsStage | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
 
+  const isLive = stream?.status === "LIVE";
   const watchUrl =
     typeof window !== "undefined" ? `${window.location.origin}/auctions/${auctionId}/watch` : "";
 
@@ -29,7 +41,7 @@ export default function StreamManagePage() {
   const joinStageAsPublisher = async () => {
     const { Stage, LocalStageStream, SubscribeType } = await import("amazon-ivs-web-broadcast");
 
-    const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    const mediaStream = await navigator.mediaDevices.getUserMedia({ video: PORTRAIT_VIDEO, audio: true });
     mediaStreamRef.current = mediaStream;
     if (videoRef.current) {
       videoRef.current.srcObject = mediaStream;
@@ -84,6 +96,7 @@ export default function StreamManagePage() {
       leaveStage();
       await endStream(auctionId);
       setStream((prev) => (prev ? { ...prev, status: "ENDED" } : prev));
+      setShowShare(false);
     } catch (e: any) {
       setError(e.response?.data?.message ?? "방송 종료에 실패했습니다.");
     } finally {
@@ -98,38 +111,69 @@ export default function StreamManagePage() {
   }, []);
 
   return (
-    <div className="container-page py-10">
-      <div className="mx-auto flex max-w-xl flex-col gap-6">
-        <p className="eyebrow text-[#566e22]">Broadcast</p>
-        <h1 className="font-display text-2xl font-semibold text-[#171717]">경매 #{auctionId} 방송 관리</h1>
+    <LivePortraitShell>
+      <video ref={videoRef} autoPlay muted playsInline className="absolute inset-0 h-full w-full object-cover" />
+      <LiveScrim />
 
-        <div className="aspect-video w-full overflow-hidden rounded-2xl border border-[#e8e9e4] bg-black">
-          <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
-        </div>
-
-        <div className="flex gap-3">
-          <button onClick={handleStart} disabled={loading || stream?.status === "LIVE"} className="btn-primary">
-            방송 시작
-          </button>
-          <button onClick={handleEnd} disabled={loading || stream?.status !== "LIVE"} className="btn-outline">
-            방송 종료
-          </button>
-        </div>
-
-        {error && <p className="text-sm text-[#e0443e]">{error}</p>}
-
-        {stream && stream.status === "LIVE" && (
-          <div className="card-surface flex flex-col gap-4 p-5 text-sm">
-            <div>
-              <p className="font-semibold text-[#171717]">참여자 시청 링크</p>
-              <a href={watchUrl} target="_blank" className="break-all text-[#566e22] underline">
-                {watchUrl}
-              </a>
-              <img src={qrCodeUrl(auctionId)} alt="시청 페이지 QR 코드" className="mt-2 rounded bg-white p-2" width={180} height={180} />
-            </div>
-          </div>
+      <div className="absolute inset-x-0 top-0 flex items-center gap-3 px-4 pt-[max(14px,env(safe-area-inset-top))]">
+        <Link
+          href={`/auctions/${auctionId}`}
+          aria-label="경매로 돌아가기"
+          className="-ml-1 grid h-9 w-9 place-items-center rounded-full bg-black/30"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+            <path d="m15 5-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+        <LiveBadge live={isLive} />
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold">경매 #{auctionId} 방송</p>
+        {isLive && (
+          <>
+            <button
+              type="button"
+              onClick={() => setShowShare((value) => !value)}
+              className="rounded-full bg-black/40 px-3 py-1.5 text-xs font-semibold"
+            >
+              공유
+            </button>
+            <button
+              type="button"
+              onClick={handleEnd}
+              disabled={loading}
+              className="rounded-full bg-[#e0443e] px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
+            >
+              종료
+            </button>
+          </>
         )}
       </div>
-    </div>
+
+      {isLive && showShare && (
+        <div className="absolute inset-x-4 top-[72px] rounded-2xl bg-black/70 p-4 text-sm backdrop-blur">
+          <p className="font-semibold">참여자 시청 링크</p>
+          <a href={watchUrl} target="_blank" className="break-all text-[#d6fa76] underline">
+            {watchUrl}
+          </a>
+          <img src={qrCodeUrl(auctionId)} alt="시청 페이지 QR 코드" className="mt-3 rounded bg-white p-2" width={140} height={140} />
+        </div>
+      )}
+
+      {!isLive && (
+        <div className="absolute inset-x-6 top-1/2 flex -translate-y-1/2 flex-col items-center gap-4 text-center">
+          <p className="text-sm text-white/80">
+            {stream?.status === "ENDED" ? "방송을 종료했습니다." : "세로 화면으로 송출됩니다. 휴대폰을 세워서 시작하세요."}
+          </p>
+          <button onClick={handleStart} disabled={loading} className="btn-primary">
+            {loading ? "준비 중..." : "방송 시작"}
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <p className="absolute inset-x-4 bottom-[max(16px,env(safe-area-inset-bottom))] rounded-xl bg-[#e0443e]/90 px-4 py-2.5 text-center text-sm">
+          {error}
+        </p>
+      )}
+    </LivePortraitShell>
   );
 }
