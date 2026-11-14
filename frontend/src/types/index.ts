@@ -148,6 +148,8 @@ export interface Member {
   id: number;
   email: string;
   name: string;
+  // 채팅처럼 다른 사람에게 보이는 곳에 쓰는 이름. 아직 정하지 않았으면 null이다.
+  nickname?: string | null;
   role: "CONSIGNOR" | "BIDDER" | "ADMIN";
 }
 
@@ -184,6 +186,18 @@ export interface StageToken {
   token: string;
   role: "PUBLISH" | "SUBSCRIBE";
   expiresAt: string;
+}
+
+// 라이브 채팅 메시지. GET/POST /api/auctions/{auctionId}/chat/messages 응답과
+// SSE auction-chat 이벤트가 같은 모양이다. host는 그 경매의 위탁자(진행자)가 보낸 메시지인지.
+export interface ChatMessage {
+  id: number;
+  auctionId: number;
+  senderId: number;
+  senderName: string;
+  host: boolean;
+  content: string;
+  createdAt: string;
 }
 
 export type MediaType = "PHOTO" | "VIDEO" | "MODEL_3D";

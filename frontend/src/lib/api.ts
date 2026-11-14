@@ -13,6 +13,7 @@ import type {
   AuctionStatus,
   Bid,
   BidResult,
+  ChatMessage,
   Livestream,
   LoginResponse, // 추가: 로그인 응답 타입
   NotificationPage,
@@ -223,8 +224,11 @@ export async function updateSellerProfile(
   return res.data;
 }
 
-/** 본인 이름 수정. 이메일과 역할은 변경하지 않는다. */
-export async function updateMember(memberId: number, request: { name: string }): Promise<Member> {
+/** 본인 이름 또는 닉네임 수정. 보낸 항목만 바뀐다. 이메일과 역할은 변경하지 않는다. */
+export async function updateMember(
+  memberId: number,
+  request: { name?: string; nickname?: string },
+): Promise<Member> {
   const res = await api.patch<Member>(`/api/members/${memberId}`, request);
   return res.data;
 }
@@ -357,6 +361,62 @@ export async function issueStageToken(auctionId: number): Promise<StageToken> {
 export function qrCodeUrl(auctionId: number): string {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
   return `${base}/api/auctions/${auctionId}/qrcode`;
+}
+
+// -----------------------------------------------------------------------
+// 라이브 채팅. 백엔드: chat/controller/LiveChatController.java
+// 조회는 누구나, 전송은 로그인 회원만 방송이 열려 있는 동안 할 수 있다.
+// 오류 응답은 { code, message } 형식이다 (401 CHAT_AUTH_REQUIRED, 409 CHAT_NOT_AVAILABLE,
+// 429 CHAT_RATE_LIMITED, 400 CHAT_INVALID_MESSAGE).
+// -----------------------------------------------------------------------
+
+export const CHAT_MAX_LENGTH = 200;
+
+/** 최근 대화를 오래된 순으로 가져온다. beforeId를 주면 그보다 이전 대화를 가져온다. */
+export async function fetchChatMessages(
+  auctionId: number,
+  params?: { beforeId?: number; size?: number },
+  signal?: AbortSignal,
+): Promise<ChatMessage[]> {
+  const res = await api.get<ChatMessage[]>(`/api/auctions/${auctionId}/chat/messages`, { params, signal });
+  return res.data;
+}
+
+export async function sendChatMessage(auctionId: number, content: string): Promise<ChatMessage> {
+  const res = await api.post<ChatMessage>(`/api/auctions/${auctionId}/chat/messages`, { content });
+  return res.data;
+}
+
+/**
+ * 새 채팅 메시지 구독. 경매 실시간 구독과 같은 SSE(GET /ws/auctions/{id})의 auction-chat 이벤트로 온다.
+ * EventSource는 끊기면 스스로 다시 붙는다. 다시 붙었을 때(onOpen) 놓친 대화는 조회 API로 채운다.
+ */
+export function subscribeAuctionChat(
+  auctionId: number,
+  onMessage: (message: ChatMessage) => void,
+  handlers?: { onOpen?: () => void },
+): () => void {
+  if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
+    return () => {};
+  }
+
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  const source = new EventSource(`${base}/ws/auctions/${auctionId}`);
+
+  const listener = (event: MessageEvent) => {
+    try {
+      onMessage(JSON.parse(event.data) as ChatMessage);
+    } catch {
+      // 형식이 맞지 않는 이벤트는 무시한다.
+    }
+  };
+  source.addEventListener('auction-chat', listener);
+  source.onopen = () => handlers?.onOpen?.();
+
+  return () => {
+    source.removeEventListener('auction-chat', listener);
+    source.close();
+  };
 }
 
 // -----------------------------------------------------------------------
