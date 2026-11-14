@@ -19,7 +19,8 @@ export default function LivePortraitShell({ children }: { children: React.ReactN
 
   return (
     <div className="fixed inset-0 z-[60] bg-black">
-      <div className="relative mx-auto h-dvh w-full max-w-[calc(100dvh*9/16)] overflow-hidden bg-black text-white">
+      {/* 휴대폰을 눕힌 것처럼 높이가 낮은 화면에서는 9:16 기둥이 너무 좁아지므로 가로 전체를 쓴다. */}
+      <div className="relative mx-auto h-dvh w-full max-w-[calc(100dvh*9/16)] overflow-hidden bg-black text-white [@media(max-height:500px)]:max-w-none">
         {children}
       </div>
     </div>
