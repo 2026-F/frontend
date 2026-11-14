@@ -148,6 +148,8 @@ export interface Member {
   id: number;
   email: string;
   name: string;
+  // 채팅처럼 다른 사람에게 보이는 곳에 쓰는 이름. 아직 정하지 않았으면 null이다.
+  nickname?: string | null;
   role: "CONSIGNOR" | "BIDDER" | "ADMIN";
 }
 

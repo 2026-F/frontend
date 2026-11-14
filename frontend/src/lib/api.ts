@@ -224,8 +224,11 @@ export async function updateSellerProfile(
   return res.data;
 }
 
-/** 본인 이름 수정. 이메일과 역할은 변경하지 않는다. */
-export async function updateMember(memberId: number, request: { name: string }): Promise<Member> {
+/** 본인 이름 또는 닉네임 수정. 보낸 항목만 바뀐다. 이메일과 역할은 변경하지 않는다. */
+export async function updateMember(
+  memberId: number,
+  request: { name?: string; nickname?: string },
+): Promise<Member> {
   const res = await api.patch<Member>(`/api/members/${memberId}`, request);
   return res.data;
 }

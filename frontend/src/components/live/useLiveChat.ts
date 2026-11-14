@@ -16,6 +16,9 @@ function merge(current: ChatMessage[], incoming: ChatMessage[]) {
 function sendErrorMessage(error: any) {
   const status = error?.response?.status;
   if (status === 401) return "로그인 후 채팅을 보낼 수 있습니다.";
+  if (status === 409 && error.response?.data?.code === "CHAT_NICKNAME_REQUIRED") {
+    return "닉네임을 먼저 정해주세요.";
+  }
   if (status === 409) return "방송 중에만 채팅을 보낼 수 있습니다.";
   if (status === 429) return "메시지를 너무 빠르게 보내고 있습니다. 잠시 후 다시 시도해주세요.";
   if (status === 400) return error.response?.data?.message ?? "메시지를 확인해주세요.";
