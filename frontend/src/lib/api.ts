@@ -11,6 +11,7 @@ import type {
   AuctionCreateRequest,
   AuctionLiveView,
   AuctionStatus,
+  AuctionSummary,
   Bid,
   BidResult,
   ChatMessage,
@@ -20,11 +21,15 @@ import type {
   Notification,
   Member, // 추가: 회원 정보 타입 (회원가입 응답, 회원 조회 응답에 같이 씀)
   PageResponse,
+  Payment,
+  PaymentMethod,
   PresignedUploadResponse,
   StageToken,
   SellerProfile,
   SellerProfileRegisterRequest,
   SellerProfileUpdateRequest,
+  Settlement,
+  SettlementPaymentStatus,
 } from '@/types';
 
 // 서버 렌더링과 브라우저가 사용하는 API 주소를 구분한다. 인증 헤더는 브라우저 요청에만 붙인다.
@@ -475,3 +480,78 @@ export async function uploadArtworkMedia(
   await completeMediaUpload(artworkId, presigned.objectKey, presigned.mediaType);
   return presigned;
 }
+
+// -----------------------------------------------------------------------
+// 정산·결제 (로그인 필요, 낙찰자 본인만). 백엔드: settlement/, payment/ 패키지
+// 흐름: 결제 요청(TOSS) → 토스 결제창 → 성공하면 승인(confirm) / 취소·실패하면 취소(cancel)
+// -----------------------------------------------------------------------
+
+/** 내 정산 목록. status를 주면 그 상태만 돌려준다. */
+export async function fetchMySettlements(status?: SettlementPaymentStatus): Promise<Settlement[]> {
+  const res = await api.get<Settlement[]>('/api/settlements/me', {
+    params: status ? { status } : undefined,
+  });
+  return res.data;
+}
+
+/** 경매 상세. 정산에는 auctionId만 있어서 작품 이름·이미지를 보여 주려면 이걸 따로 부른다. */
+export async function fetchAuctionSummary(auctionId: number): Promise<AuctionSummary> {
+  const res = await api.get<AuctionSummary>(`/api/auctions/${auctionId}`);
+  return res.data;
+}
+
+/**
+ * 결제 요청을 만든다. 금액은 서버가 정산 금액으로 정한다 (요청에 금액을 보내지 않음).
+ * TOSS는 요청만 만들고(202, REQUESTED) 돌아온다 → 이 결제의 id로 토스 결제창을 띄운다.
+ */
+export async function requestPayment(settlementId: number, method: PaymentMethod): Promise<Payment> {
+  const res = await api.post<Payment>(`/api/settlements/${settlementId}/payments`, { method });
+  return res.data;
+}
+
+export async function fetchPayment(paymentId: number): Promise<Payment> {
+  const res = await api.get<Payment>(`/api/payments/${paymentId}`);
+  return res.data;
+}
+
+/**
+ * 토스 결제창이 성공 주소로 돌려보내면 받은 paymentKey, orderId로 최종 승인을 요청한다.
+ * 서버가 토스 승인 API까지 다녀오므로 기본 4초보다 길게 기다린다.
+ */
+export async function confirmTossPayment(
+  paymentId: number,
+  paymentKey: string,
+  orderId: string,
+): Promise<Payment> {
+  const res = await api.post<Payment>(
+    `/api/payments/${paymentId}/confirm`,
+    { paymentKey, orderId },
+    { timeout: 15000 },
+  );
+  return res.data;
+}
+
+/**
+ * 결제창에서 취소·실패했을 때 부른다. 서버가 토스에 확인한 뒤 결제를 정리해서 바로 다시 결제할 수 있게 한다.
+ * 토스가 아직 진행 중이라고 답하면 409(PAYMENT_IN_PROGRESS)가 온다.
+ */
+export async function cancelPayment(paymentId: number): Promise<Payment> {
+  const res = await api.post<Payment>(`/api/payments/${paymentId}/cancel`, undefined, {
+    timeout: 10000,
+  });
+  return res.data;
+}
+
+// 토스 주문번호 규칙. 서버도 같은 규칙("payment_" + 결제ID)으로 주문번호를 검사한다 (PaymentService.confirmToss).
+const ORDER_ID_PREFIX = 'payment_';
+
+export function paymentOrderId(paymentId: number): string {
+  return `${ORDER_ID_PREFIX}${paymentId}`;
+}
+
+/** 토스가 돌려준 orderId에서 결제 ID를 꺼낸다. 형식이 다르면 null. */
+export function paymentIdFromOrderId(orderId: string | null): number | null {
+  const match = orderId?.match(/^payment_(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
+
