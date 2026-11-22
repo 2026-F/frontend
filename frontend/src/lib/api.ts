@@ -11,19 +11,25 @@ import type {
   AuctionCreateRequest,
   AuctionLiveView,
   AuctionStatus,
+  AuctionSummary,
   Bid,
   BidResult,
+  ChatMessage,
   Livestream,
   LoginResponse, // 추가: 로그인 응답 타입
   NotificationPage,
   Notification,
   Member, // 추가: 회원 정보 타입 (회원가입 응답, 회원 조회 응답에 같이 씀)
   PageResponse,
+  Payment,
+  PaymentMethod,
   PresignedUploadResponse,
   StageToken,
   SellerProfile,
   SellerProfileRegisterRequest,
   SellerProfileUpdateRequest,
+  Settlement,
+  SettlementPaymentStatus,
 } from '@/types';
 
 // 서버 렌더링과 브라우저가 사용하는 API 주소를 구분한다. 인증 헤더는 브라우저 요청에만 붙인다.
@@ -223,8 +229,11 @@ export async function updateSellerProfile(
   return res.data;
 }
 
-/** 본인 이름 수정. 이메일과 역할은 변경하지 않는다. */
-export async function updateMember(memberId: number, request: { name: string }): Promise<Member> {
+/** 본인 이름 또는 닉네임 수정. 보낸 항목만 바뀐다. 이메일과 역할은 변경하지 않는다. */
+export async function updateMember(
+  memberId: number,
+  request: { name?: string; nickname?: string },
+): Promise<Member> {
   const res = await api.patch<Member>(`/api/members/${memberId}`, request);
   return res.data;
 }
@@ -360,6 +369,62 @@ export function qrCodeUrl(auctionId: number): string {
 }
 
 // -----------------------------------------------------------------------
+// 라이브 채팅. 백엔드: chat/controller/LiveChatController.java
+// 조회는 누구나, 전송은 로그인 회원만 방송이 열려 있는 동안 할 수 있다.
+// 오류 응답은 { code, message } 형식이다 (401 CHAT_AUTH_REQUIRED, 409 CHAT_NOT_AVAILABLE,
+// 429 CHAT_RATE_LIMITED, 400 CHAT_INVALID_MESSAGE).
+// -----------------------------------------------------------------------
+
+export const CHAT_MAX_LENGTH = 200;
+
+/** 최근 대화를 오래된 순으로 가져온다. beforeId를 주면 그보다 이전 대화를 가져온다. */
+export async function fetchChatMessages(
+  auctionId: number,
+  params?: { beforeId?: number; size?: number },
+  signal?: AbortSignal,
+): Promise<ChatMessage[]> {
+  const res = await api.get<ChatMessage[]>(`/api/auctions/${auctionId}/chat/messages`, { params, signal });
+  return res.data;
+}
+
+export async function sendChatMessage(auctionId: number, content: string): Promise<ChatMessage> {
+  const res = await api.post<ChatMessage>(`/api/auctions/${auctionId}/chat/messages`, { content });
+  return res.data;
+}
+
+/**
+ * 새 채팅 메시지 구독. 경매 실시간 구독과 같은 SSE(GET /ws/auctions/{id})의 auction-chat 이벤트로 온다.
+ * EventSource는 끊기면 스스로 다시 붙는다. 다시 붙었을 때(onOpen) 놓친 대화는 조회 API로 채운다.
+ */
+export function subscribeAuctionChat(
+  auctionId: number,
+  onMessage: (message: ChatMessage) => void,
+  handlers?: { onOpen?: () => void },
+): () => void {
+  if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
+    return () => {};
+  }
+
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  const source = new EventSource(`${base}/ws/auctions/${auctionId}`);
+
+  const listener = (event: MessageEvent) => {
+    try {
+      onMessage(JSON.parse(event.data) as ChatMessage);
+    } catch {
+      // 형식이 맞지 않는 이벤트는 무시한다.
+    }
+  };
+  source.addEventListener('auction-chat', listener);
+  source.onopen = () => handlers?.onOpen?.();
+
+  return () => {
+    source.removeEventListener('auction-chat', listener);
+    source.close();
+  };
+}
+
+// -----------------------------------------------------------------------
 // 작품 미디어 업로드 (사진 / 영상 / 3D 모델)
 // 1) presigned URL 발급 → 2) S3에 직접 PUT → 3) /complete로 업로드 완료 알림
 // /complete에는 1)에서 받은 objectKey와 mediaType을 그대로 돌려보내야 한다.
@@ -415,3 +480,78 @@ export async function uploadArtworkMedia(
   await completeMediaUpload(artworkId, presigned.objectKey, presigned.mediaType);
   return presigned;
 }
+
+// -----------------------------------------------------------------------
+// 정산·결제 (로그인 필요, 낙찰자 본인만). 백엔드: settlement/, payment/ 패키지
+// 흐름: 결제 요청(TOSS) → 토스 결제창 → 성공하면 승인(confirm) / 취소·실패하면 취소(cancel)
+// -----------------------------------------------------------------------
+
+/** 내 정산 목록. status를 주면 그 상태만 돌려준다. */
+export async function fetchMySettlements(status?: SettlementPaymentStatus): Promise<Settlement[]> {
+  const res = await api.get<Settlement[]>('/api/settlements/me', {
+    params: status ? { status } : undefined,
+  });
+  return res.data;
+}
+
+/** 경매 상세. 정산에는 auctionId만 있어서 작품 이름·이미지를 보여 주려면 이걸 따로 부른다. */
+export async function fetchAuctionSummary(auctionId: number): Promise<AuctionSummary> {
+  const res = await api.get<AuctionSummary>(`/api/auctions/${auctionId}`);
+  return res.data;
+}
+
+/**
+ * 결제 요청을 만든다. 금액은 서버가 정산 금액으로 정한다 (요청에 금액을 보내지 않음).
+ * TOSS는 요청만 만들고(202, REQUESTED) 돌아온다 → 이 결제의 id로 토스 결제창을 띄운다.
+ */
+export async function requestPayment(settlementId: number, method: PaymentMethod): Promise<Payment> {
+  const res = await api.post<Payment>(`/api/settlements/${settlementId}/payments`, { method });
+  return res.data;
+}
+
+export async function fetchPayment(paymentId: number): Promise<Payment> {
+  const res = await api.get<Payment>(`/api/payments/${paymentId}`);
+  return res.data;
+}
+
+/**
+ * 토스 결제창이 성공 주소로 돌려보내면 받은 paymentKey, orderId로 최종 승인을 요청한다.
+ * 서버가 토스 승인 API까지 다녀오므로 기본 4초보다 길게 기다린다.
+ */
+export async function confirmTossPayment(
+  paymentId: number,
+  paymentKey: string,
+  orderId: string,
+): Promise<Payment> {
+  const res = await api.post<Payment>(
+    `/api/payments/${paymentId}/confirm`,
+    { paymentKey, orderId },
+    { timeout: 15000 },
+  );
+  return res.data;
+}
+
+/**
+ * 결제창에서 취소·실패했을 때 부른다. 서버가 토스에 확인한 뒤 결제를 정리해서 바로 다시 결제할 수 있게 한다.
+ * 토스가 아직 진행 중이라고 답하면 409(PAYMENT_IN_PROGRESS)가 온다.
+ */
+export async function cancelPayment(paymentId: number): Promise<Payment> {
+  const res = await api.post<Payment>(`/api/payments/${paymentId}/cancel`, undefined, {
+    timeout: 10000,
+  });
+  return res.data;
+}
+
+// 토스 주문번호 규칙. 서버도 같은 규칙("payment_" + 결제ID)으로 주문번호를 검사한다 (PaymentService.confirmToss).
+const ORDER_ID_PREFIX = 'payment_';
+
+export function paymentOrderId(paymentId: number): string {
+  return `${ORDER_ID_PREFIX}${paymentId}`;
+}
+
+/** 토스가 돌려준 orderId에서 결제 ID를 꺼낸다. 형식이 다르면 null. */
+export function paymentIdFromOrderId(orderId: string | null): number | null {
+  const match = orderId?.match(/^payment_(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
+

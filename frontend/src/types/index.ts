@@ -148,6 +148,8 @@ export interface Member {
   id: number;
   email: string;
   name: string;
+  // 채팅처럼 다른 사람에게 보이는 곳에 쓰는 이름. 아직 정하지 않았으면 null이다.
+  nickname?: string | null;
   role: "CONSIGNOR" | "BIDDER" | "ADMIN";
 }
 
@@ -186,6 +188,18 @@ export interface StageToken {
   expiresAt: string;
 }
 
+// 라이브 채팅 메시지. GET/POST /api/auctions/{auctionId}/chat/messages 응답과
+// SSE auction-chat 이벤트가 같은 모양이다. host는 그 경매의 위탁자(진행자)가 보낸 메시지인지.
+export interface ChatMessage {
+  id: number;
+  auctionId: number;
+  senderId: number;
+  senderName: string;
+  host: boolean;
+  content: string;
+  createdAt: string;
+}
+
 export type MediaType = "PHOTO" | "VIDEO" | "MODEL_3D";
 
 // POST /api/artworks/{artworkId}/media/presigned-url 응답
@@ -204,13 +218,57 @@ export interface ArtworkMedia {
   sortOrder: number;
 }
 
+// ---------------------------------------------------------------------
+// 정산·결제 — 백엔드: settlement/dto/SettlementResponse.java, payment/dto/PaymentResponse.java
+// 시각은 서버(한국 시간) 기준의 시간대 없는 문자열이다. 예: "2026-11-24T14:38:06"
+// ---------------------------------------------------------------------
+
+/** 정산의 결제 상태. FAILED이면서 expiredAt이 있으면 결제 기한 만료다. */
+export type SettlementPaymentStatus = "PENDING" | "PAID" | "FAILED";
+
+/** 정산(낙찰자에게 청구하는 금액). 경매가 마감되면 서버가 낙찰자 몫으로 하나 만든다. */
 export interface Settlement {
   id: number;
   auctionId: number;
   winnerId: number;
-  finalPrice: number;
-  premiumFee: number;
-  paymentStatus: "PENDING" | "PAID" | "FAILED";
+  finalPrice: number; // 낙찰가
+  premiumFee: number; // 구매 수수료 (낙찰가의 10%)
+  shippingFee: number; // 배송비
+  totalAmount: number; // 결제할 총액 = 낙찰가 + 수수료 + 배송비
+  paymentDeadlineAt: string; // 결제 기한 (마감 + 3일)
+  paymentStatus: SettlementPaymentStatus;
+  expiredAt: string | null;
+}
+
+export type PaymentMethod = "MOCK_PG" | "TOSS";
+
+/** 결제 시도 하나의 상태. REQUESTED는 결제창을 띄웠지만 아직 결과가 확정되지 않은 상태다. */
+export type PaymentStatus = "REQUESTED" | "PAID" | "FAILED";
+
+export interface Payment {
+  id: number;
+  settlementId: number;
+  amount: number; // 서버가 정산 금액으로 정한 결제 금액 (클라이언트가 정하지 않음)
+  method: PaymentMethod;
+  status: PaymentStatus;
+  transactionId: string | null;
+  failureReason: string | null;
+  requestedAt: string;
+  paidAt: string | null;
+}
+
+/** 경매 상세 (작품 이름·이미지 포함) — GET /api/auctions/{id}. 정산 목록에 작품 정보를 붙일 때 쓴다. */
+export interface AuctionSummary {
+  id: number;
+  currentPrice: number;
+  startPrice: number;
+  minBidUnit: number;
+  previewStart: string;
+  previewEnd: string;
+  auctionEndAt: string;
+  status: AuctionStatus;
+  title: string;
+  imageUrl: string | null;
 }
 
 // ---------------------------------------------------------------------

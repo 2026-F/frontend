@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { fetchStream, issueStageToken } from "@/lib/api";
+import LiveBidBar from "@/components/live/LiveBidBar";
+import LiveChat from "@/components/live/LiveChat";
+import LivePortraitShell,{ LiveBadge, LiveScrim } from "@/components/live/LivePortraitShell";
 import type { Stage as IvsStage, StageParticipantInfo, StageStream } from "amazon-ivs-web-broadcast";
 
 export default function WatchStreamPage() {
@@ -12,6 +16,9 @@ export default function WatchStreamPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const stageRef = useRef<IvsStage | null>(null);
   const [status, setStatus] = useState("연결 중...");
+  const [playing, setPlaying] = useState(false);
+  // 소리가 켜진 영상은 브라우저가 자동 재생을 막는다. 음소거로 시작하고 버튼으로 켠다.
+  const [muted, setMuted] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,6 +58,7 @@ export default function WatchStreamPage() {
               videoRef.current.srcObject = mediaStream;
               videoRef.current.play().catch(() => {});
             }
+            setPlaying(true);
             setStatus("재생 중");
           },
         );
@@ -58,6 +66,7 @@ export default function WatchStreamPage() {
         stage.on(StageEvents.STAGE_CONNECTION_STATE_CHANGED, (state: string) => {
           if (cancelled) return;
           if (state === "disconnected") {
+            setPlaying(false);
             setStatus("방송 연결이 끊어졌습니다.");
           }
         });
@@ -78,15 +87,39 @@ export default function WatchStreamPage() {
   }, [auctionId]);
 
   return (
-    <div className="container-page py-10">
-      <div className="mx-auto flex max-w-2xl flex-col gap-4">
-        <p className="eyebrow text-[#566e22]">Live</p>
-        <h1 className="font-display text-2xl font-semibold text-[#171717]">경매 #{auctionId} 라이브</h1>
-        <div className="aspect-video w-full overflow-hidden rounded-2xl border border-[#e8e9e4] bg-black">
-          <video ref={videoRef} controls playsInline className="h-full w-full" />
-        </div>
-        <p className="text-sm text-[#73756f]">{status}</p>
+    <LivePortraitShell>
+      {/* 송출 영상이 가로여도 가운데를 잘라 세로 화면을 꽉 채운다. */}
+      <video ref={videoRef} autoPlay muted={muted} playsInline className="absolute inset-0 h-full w-full object-cover" />
+      <LiveScrim />
+
+      <div className="absolute inset-x-0 top-0 flex items-center gap-3 px-4 pt-[max(14px,env(safe-area-inset-top))]">
+        <Link
+          href={`/auctions/${auctionId}`}
+          aria-label="경매로 돌아가기"
+          className="-ml-1 grid h-9 w-9 place-items-center rounded-full bg-black/30"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+            <path d="m15 5-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+        <LiveBadge live={playing} />
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold">경매 #{auctionId} 라이브</p>
+        {playing && (
+          <button
+            type="button"
+            onClick={() => setMuted((value) => !value)}
+            className="rounded-full bg-black/40 px-3 py-1.5 text-xs font-semibold"
+          >
+            {muted ? "소리 켜기" : "소리 끄기"}
+          </button>
+        )}
       </div>
-    </div>
+
+      {!playing && (
+        <p className="absolute inset-x-6 top-1/3 text-center text-sm text-white/80">{status}</p>
+      )}
+
+      <LiveChat auctionId={auctionId} above={<LiveBidBar auctionId={auctionId} />} />
+    </LivePortraitShell>
   );
 }
