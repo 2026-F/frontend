@@ -9,6 +9,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        canvas: "var(--background)",
+        "surface-muted": "#f7f8f4",
+        "copy-primary": "#171717",
+        "copy-secondary": "#73756f",
+        "lime-action": "#a8ff00",
+        "lime-highlight": "#b8f53d",
+        "lime-soft": "#d6fa76",
         // 살짝 보라 기운이 도는 다크 톤 (완전 무채색 블랙보다 트렌디한 느낌)
         ink: {
           DEFAULT: "#0B0B14",

@@ -55,7 +55,7 @@ export default function SignUpPage() {
     "h-12 rounded-[8px] border border-[#dfe0da] px-4 text-[14px] outline-none focus:border-[#111111]";
 
   return (
-    <div className="px-5 pb-12 pt-10 text-[#171717]">
+    <div className="px-5 pb-12 pt-10 text-copy-primary">
       <h1 className="text-[24px] font-extrabold tracking-[-0.04em]">회원가입</h1>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-3">
@@ -83,13 +83,13 @@ export default function SignUpPage() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 h-12 rounded-[8px] bg-[#a8ff00] text-[14px] font-extrabold disabled:opacity-50"
+          className="mt-2 h-12 rounded-[8px] bg-lime-action text-[14px] font-extrabold disabled:opacity-50"
         >
           {loading ? "가입 중..." : "가입하기"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-[13px] text-[#73756f]">
+      <p className="mt-6 text-center text-[13px] text-copy-secondary">
         이미 계정이 있으신가요?{" "}
         <Link href="/login" className="font-bold text-[#111111] underline">
           로그인

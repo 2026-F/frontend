@@ -20,7 +20,7 @@ export default async function HomePage() {
     failure = requestFailure(error);
   }
   return (
-    <div className="bg-white pb-12 text-[#171717]">
+    <div className="bg-white pb-12 text-copy-primary">
       <section className="px-5 pt-5" aria-label="프로모션">
         <PromotionCarousel promotions={PROMOTIONS} />
       </section>
@@ -32,7 +32,7 @@ export default async function HomePage() {
             <Link
               key={category}
               href={`/categories?category=${category}`}
-              className="flex min-h-11 items-center justify-center rounded-full border border-[#dfe2d8] bg-[#f7f8f4] px-1 text-xs font-semibold text-[#454641]"
+              className="flex min-h-11 items-center justify-center rounded-full border border-[#dfe2d8] bg-surface-muted px-1 text-xs font-semibold text-[#454641]"
             >
               {CATEGORY_LABELS[category]}
             </Link>
@@ -56,7 +56,7 @@ export default async function HomePage() {
               <DataNotice message={failure} />
             </div>
           ) : lots.length === 0 ? (
-            <p className="px-5 py-8 text-sm text-[#73756f]">아직 등록된 작품이 없습니다.</p>
+            <p className="px-5 py-8 text-sm text-copy-secondary">아직 등록된 작품이 없습니다.</p>
           ) : null}
           {lots.some((item) => item.auctionError) && (
             <div className="px-5">
