@@ -114,7 +114,7 @@ export default function AuctionListClient({ initialPage }: { initialPage: PageRe
   return (
     <div className="flex flex-col gap-5">
       {(error || clockFailed) && (
-        <div role="status" className="rounded-xl bg-[#f7f8f4] p-4 text-sm text-[#555751]">
+        <div role="status" className="rounded-xl bg-surface-muted p-4 text-sm text-[#555751]">
           {error && <p>{error}</p>}
           {clockFailed && <p>서버 마감 시각을 갱신하지 못했습니다.</p>}
           <button
@@ -127,7 +127,7 @@ export default function AuctionListClient({ initialPage }: { initialPage: PageRe
           </button>
         </div>
       )}
-      <p className="text-xs text-[#73756f]">
+      <p className="text-xs text-copy-secondary">
         상태 필터는 현재 페이지에만 적용됩니다. 경매 없는 작품은 전체에서 확인할 수 있습니다.
       </p>
       <div className="flex flex-wrap gap-2">
@@ -138,7 +138,7 @@ export default function AuctionListClient({ initialPage }: { initialPage: PageRe
             onClick={() => setFilter(f.key)}
             className={`rounded-full border px-3 py-1.5 text-xs transition ${
               filter === f.key
-                ? 'border-[#171717] bg-[#171717] font-semibold text-[#b8f53d]'
+                ? 'border-[#171717] bg-[#171717] font-semibold text-lime-highlight'
                 : 'border-[#d9dcd2] text-[#454641] hover:border-[#8dbb30] hover:text-[#566e22]'
             }`}
           >
@@ -148,7 +148,7 @@ export default function AuctionListClient({ initialPage }: { initialPage: PageRe
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-16 text-center text-sm text-[#73756f]">
+        <p className="py-16 text-center text-sm text-copy-secondary">
           현재 페이지에 해당하는 작품이 없습니다.
         </p>
       ) : (

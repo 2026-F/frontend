@@ -64,7 +64,7 @@ export default function BottomNav() {
             <Link key={href} href={href} className={`relative flex flex-col items-center justify-center gap-1 text-[8px] font-semibold tracking-[0.08em] ${active ? "text-[#111111]" : "text-[#777873]"}`}>
               <Icon active={active} />
               <span>{label}</span>
-              {active && <span className="absolute bottom-0 h-[2px] w-7 rounded-full bg-[#a8ff00]" />}
+              {active && <span className="absolute bottom-0 h-[2px] w-7 rounded-full bg-lime-action" />}
             </Link>
           );
         })}

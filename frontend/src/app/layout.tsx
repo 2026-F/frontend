@@ -32,7 +32,7 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css"
         />
       </head>
-      <body className="min-h-screen bg-[#f2f2f0] font-sans antialiased">
+      <body className="min-h-screen bg-canvas font-sans antialiased">
         <div className="relative mx-auto min-h-screen w-full max-w-[390px] bg-white shadow-[0_0_18px_rgba(0,0,0,0.05)]">
           <Header />
           <main className="min-h-screen pb-[62px]">{children}</main>

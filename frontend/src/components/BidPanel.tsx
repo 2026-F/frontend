@@ -60,10 +60,10 @@ export default function BidPanel({ lot }: { lot: Lot }) {
     <div className="flex flex-col gap-6">
       <div>
         <AuctionStatusBadge status={auction.status} />
-        <h1 className="mt-3 font-display text-3xl font-semibold text-[#171717]">
+        <h1 className="mt-3 font-display text-3xl font-semibold text-copy-primary">
           {lot.artwork.title}
         </h1>
-        <p className="mt-1 text-[#73756f]">
+        <p className="mt-1 text-copy-secondary">
           {lot.artistName} · {lot.category}
         </p>
       </div>
@@ -117,7 +117,7 @@ export default function BidPanel({ lot }: { lot: Lot }) {
                   step={auction.minBidUnit}
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full rounded-lg border border-white/30 bg-[#292b27] px-4 py-2.5 text-sm text-white focus:border-[#b8f53d] focus:outline-none focus:ring-1 focus:ring-[#b8f53d]"
+                  className="w-full rounded-lg border border-white/30 bg-[#292b27] px-4 py-2.5 text-sm text-white focus:border-lime-highlight focus:outline-none focus:ring-1 focus:ring-lime-highlight"
                 />
               </label>
             </div>
@@ -128,7 +128,7 @@ export default function BidPanel({ lot }: { lot: Lot }) {
                   type="button"
                   key={add}
                   onClick={() => setAmount(auction.currentPrice + add)}
-                  className="rounded-full border border-white/30 px-3 py-1 text-xs text-white hover:border-[#b8f53d] hover:text-[#b8f53d]"
+                  className="rounded-full border border-white/30 px-3 py-1 text-xs text-white hover:border-lime-highlight hover:text-lime-highlight"
                 >
                   +{formatWon(add)}
                   {idx === 0 && ' (최소)'}
