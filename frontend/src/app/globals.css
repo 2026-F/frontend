@@ -51,28 +51,23 @@ body::-webkit-scrollbar,
   }
 
   .card-surface {
-    @apply rounded-xl border border-[#e8e9e4] bg-[#f7f8f4] shadow-card backdrop-blur-sm;
+    @apply rounded-xl border border-[#e8e9e4] bg-surface-muted shadow-card backdrop-blur-sm;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#b8f53d] to-[#d6fa76]
-      px-5 py-2.5 text-sm font-semibold text-[#171717] shadow-lg shadow-[#b8f53d]/20 transition
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-lime-highlight to-lime-soft
+      px-5 py-2.5 text-sm font-semibold text-copy-primary shadow-lg shadow-lime-highlight/20 transition
       hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   .btn-outline {
     @apply inline-flex items-center justify-center gap-2 rounded-full border border-[#d9dcd2]
-      px-5 py-2.5 text-sm font-semibold text-[#171717] transition hover:border-[#8dbb30] hover:text-[#566e22]
+      px-5 py-2.5 text-sm font-semibold text-copy-primary transition hover:border-[#8dbb30] hover:text-[#566e22]
       disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   .badge {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold
       uppercase tracking-wide;
-  }
-
-  .input-field {
-    @apply w-full rounded-lg border border-[#d9dcd2] bg-white px-4 py-2.5 text-sm text-[#171717]
-      placeholder:text-[#9b9d95] focus:border-[#8dbb30] focus:outline-none focus:ring-1 focus:ring-[#8dbb30];
   }
 }

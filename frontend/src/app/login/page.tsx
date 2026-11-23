@@ -114,9 +114,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="px-5 pb-12 pt-10 text-[#171717]">
+    <div className="px-5 pb-12 pt-10 text-copy-primary">
       <h1 className="text-[24px] font-extrabold tracking-[-0.04em]">로그인</h1>
-      <p className="mt-2 text-[13px] text-[#73756f]">입찰하려면 로그인이 필요해요.</p>
+      <p className="mt-2 text-[13px] text-copy-secondary">입찰하려면 로그인이 필요해요.</p>
 
       {/* onSubmit: 버튼 클릭이나 입력창에서 Enter를 눌러도 handleSubmit 실행 */}
       <form onSubmit={handleSubmit} aria-busy={loading} className="mt-8 flex flex-col gap-3">
@@ -173,13 +173,13 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 h-12 rounded-[8px] bg-[#a8ff00] text-[14px] font-extrabold disabled:opacity-50"
+          className="mt-2 h-12 rounded-[8px] bg-lime-action text-[14px] font-extrabold disabled:opacity-50"
         >
           {loading ? '로그인 중...' : '로그인'}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-[13px] text-[#73756f]">
+      <p className="mt-6 text-center text-[13px] text-copy-secondary">
         아직 회원이 아니신가요?{' '}
         <Link href="/signup" className="font-bold text-[#111111] underline">
           회원가입

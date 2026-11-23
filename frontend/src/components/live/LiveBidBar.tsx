@@ -102,7 +102,7 @@ function LiveBidBarInner({ initial, readOnly }: { initial: Auction; readOnly: bo
           <p className="flex items-center gap-1.5 text-[11px] text-white/70">
             현재가
             {leading && (
-              <span className="rounded bg-[#b8f53d] px-1 py-0.5 text-[10px] font-bold text-[#171717]">최고 입찰 중</span>
+              <span className="rounded bg-lime-highlight px-1 py-0.5 text-[10px] font-bold text-copy-primary">최고 입찰 중</span>
             )}
           </p>
           <p className="truncate text-lg font-bold tabular-nums">{formatWon(auction.currentPrice)}</p>
@@ -134,7 +134,7 @@ function LiveBidBarInner({ initial, readOnly }: { initial: Auction; readOnly: bo
                 setAmount(minNext);
                 setOpen(true);
               }}
-              className="shrink-0 rounded-full bg-[#b8f53d] px-4 py-2 text-sm font-bold text-[#171717]"
+              className="shrink-0 rounded-full bg-lime-highlight px-4 py-2 text-sm font-bold text-copy-primary"
             >
               입찰
             </button>
@@ -156,7 +156,7 @@ function LiveBidBarInner({ initial, readOnly }: { initial: Auction; readOnly: bo
                   key={add}
                   onClick={() => setAmount(value)}
                   className={`rounded-full border px-3 py-1 text-xs ${
-                    amount === value ? "border-[#b8f53d] text-[#b8f53d]" : "border-white/30 text-white"
+                    amount === value ? "border-lime-highlight text-lime-highlight" : "border-white/30 text-white"
                   }`}
                 >
                   +{formatWon(add)}
@@ -177,7 +177,7 @@ function LiveBidBarInner({ initial, readOnly }: { initial: Auction; readOnly: bo
               type="button"
               onClick={handleBid}
               disabled={submitting || amount < minNext}
-              className="flex-1 rounded-full bg-[#b8f53d] px-4 py-2.5 text-sm font-bold text-[#171717] disabled:opacity-40"
+              className="flex-1 rounded-full bg-lime-highlight px-4 py-2.5 text-sm font-bold text-copy-primary disabled:opacity-40"
             >
               {submitting ? "입찰 중..." : `${formatWon(amount)}에 입찰하기`}
             </button>

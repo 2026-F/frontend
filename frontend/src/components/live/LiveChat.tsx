@@ -9,9 +9,9 @@ import { useLiveChat } from "./useLiveChat";
 const NICKNAME_MAX_LENGTH = 20;
 
 const inputClass =
-  "min-w-0 flex-1 rounded-full border border-white/25 bg-black/40 px-4 py-2.5 text-sm text-white placeholder:text-white/50 focus:border-[#b8f53d] focus:outline-none";
+  "min-w-0 flex-1 rounded-full border border-white/25 bg-black/40 px-4 py-2.5 text-sm text-white placeholder:text-white/50 focus:border-lime-highlight focus:outline-none";
 const submitClass =
-  "shrink-0 rounded-full bg-[#b8f53d] px-4 py-2.5 text-sm font-semibold text-[#171717] disabled:opacity-40";
+  "shrink-0 rounded-full bg-lime-highlight px-4 py-2.5 text-sm font-semibold text-copy-primary disabled:opacity-40";
 
 /**
  * 라이브 영상 위 아래쪽에 겹쳐 놓는 채팅. LivePortraitShell 안에서 쓴다.
@@ -71,9 +71,9 @@ export default function LiveChat({ auctionId, above }: { auctionId: number; abov
         {messages.map((message) => (
           <p key={message.id} className="w-fit max-w-[85%] break-words rounded-2xl bg-black/35 px-3 py-1.5 text-[13px] leading-snug">
             {message.host && (
-              <span className="mr-1.5 rounded bg-[#b8f53d] px-1 py-0.5 text-[10px] font-bold text-[#171717]">진행자</span>
+              <span className="mr-1.5 rounded bg-lime-highlight px-1 py-0.5 text-[10px] font-bold text-copy-primary">진행자</span>
             )}
-            <span className={`mr-1.5 font-semibold ${message.senderId === member?.id ? "text-[#d6fa76]" : "text-white/70"}`}>
+            <span className={`mr-1.5 font-semibold ${message.senderId === member?.id ? "text-lime-soft" : "text-white/70"}`}>
               {message.senderName}
             </span>
             {message.content}
