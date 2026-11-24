@@ -8,6 +8,12 @@ import FormField from "@/components/FormField";
 import { errorMessage, login, signUp } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
+const PASSWORD_LENGTH_MESSAGE = "비밀번호는 8~64자로 입력해 주세요.";
+
+function hasValidPasswordLength(password: string) {
+  return password.length >= 8 && password.length <= 64;
+}
+
 // 주소: /signup
 export default function SignUpPage() {
   const router = useRouter();
@@ -26,8 +32,8 @@ export default function SignUpPage() {
     // 백엔드 SignUpRequest는 비밀번호를 8~64자로 검사하는데,
     // 검사에 걸리면 친절한 메시지 대신 500 에러가 와버림.
     // 그래서 요청 보내기 전에 프론트에서 먼저 같은 규칙으로 검사
-    if (password.length < 8 || password.length > 64) {
-      setError({ message: "비밀번호는 8~64자로 입력해 주세요.", field: "password" });
+    if (!hasValidPasswordLength(password)) {
+      setError({ message: PASSWORD_LENGTH_MESSAGE, field: "password" });
       return; // 요청을 보내지 않고 여기서 끝
     }
 
@@ -74,10 +80,19 @@ export default function SignUpPage() {
           required
           placeholder="비밀번호 (8자 이상)"
           aria-invalid={passwordInvalid || undefined}
-          aria-describedby={passwordInvalid ? "signup-error" : undefined}
+          aria-describedby={passwordInvalid ? "signup-error" : "signup-password-hint"}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            const nextPassword = e.target.value;
+            setPassword(nextPassword);
+            if (passwordInvalid && hasValidPasswordLength(nextPassword)) {
+              setError(null);
+            }
+          }}
         />
+        <p id="signup-password-hint" className="sr-only">
+          {PASSWORD_LENGTH_MESSAGE}
+        </p>
 
         {error && (
           <p id="signup-error" role="alert" className="text-[12px] text-[#ff4e44]">
