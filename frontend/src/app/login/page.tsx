@@ -4,6 +4,8 @@ import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Button from '@/components/Button';
+import FormField from '@/components/FormField';
 import { errorMessage, fetchMember, login } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import type { LoginResponse } from '@/types';
@@ -122,11 +124,10 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} aria-busy={loading} className="mt-8 flex flex-col gap-3">
         {/* type="email" + required: 브라우저가 빈 값이나 이메일 형식 오류를 먼저 막아줌
             (백엔드는 형식 오류를 500으로 보내서, 프론트에서 걸러주는 게 중요) */}
-        <input
+        <FormField
+          label="이메일"
           type="email"
           required
-          placeholder="이메일"
-          aria-label="이메일"
           autoComplete="username"
           disabled={loading}
           value={email}
@@ -134,14 +135,12 @@ export default function LoginPage() {
             resetPending();
             setEmail(e.target.value);
           }}
-          className="h-12 rounded-[8px] border border-[#dfe0da] px-4 text-[14px] outline-none focus:border-[#111111]"
         />
         {/* type="password": 입력한 글자를 ●●● 로 가려줌 */}
-        <input
+        <FormField
+          label="비밀번호"
           type="password"
           required
-          placeholder="비밀번호"
-          aria-label="비밀번호"
           autoComplete="current-password"
           disabled={loading}
           value={password}
@@ -149,7 +148,6 @@ export default function LoginPage() {
             resetPending();
             setPassword(e.target.value);
           }}
-          className="h-12 rounded-[8px] border border-[#dfe0da] px-4 text-[14px] outline-none focus:border-[#111111]"
         />
 
         {/* 에러가 있을 때만 빨간 글씨로 표시 */}
@@ -170,13 +168,9 @@ export default function LoginPage() {
         )}
 
         {/* 요청 중에는 disabled로 막고 문구도 바꿔서 진행 중인 걸 알려줌 */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 h-12 rounded-[8px] bg-lime-action text-[14px] font-extrabold disabled:opacity-50"
-        >
+        <Button type="submit" disabled={loading} className="mt-2">
           {loading ? '로그인 중...' : '로그인'}
-        </button>
+        </Button>
       </form>
 
       <p className="mt-6 text-center text-[13px] text-copy-secondary">
