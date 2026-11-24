@@ -9,6 +9,7 @@
 import axios from 'axios';
 import { useState } from 'react';
 import { fetchAdminRow, type AdminRow } from '@/lib/adminArtworks';
+import AdminAuctionCreateForm from '@/components/AdminAuctionCreateForm';
 import ReopenEndPicker, {
   REOPEN_END_ERROR,
   reopenDurationMinutes,
@@ -16,7 +17,6 @@ import ReopenEndPicker, {
 } from '@/components/ReopenEndPicker';
 import {
   approveArtwork,
-  createAuction,
   errorMessage,
   fetchArtworkDetail,
   rejectArtwork,
@@ -25,7 +25,7 @@ import {
   updateAuctionStatus,
 } from '@/lib/api';
 import { summaryOf } from '@/lib/lots';
-import type { ArtworkStatus, AuctionStatus } from '@/types';
+import type { ArtworkStatus, Auction, AuctionStatus } from '@/types';
 
 const ARTWORK_STATUS_LABELS: Record<ArtworkStatus, string> = {
   PENDING_REVIEW: '심사 대기',
@@ -51,19 +51,6 @@ const LOOKUP_FAILURE_MESSAGE = {
   artwork: '최신 작품 정보를 불러오지 못했습니다.',
 };
 
-// <input type="datetime-local">가 쓰는 "YYYY-MM-DDTHH:mm" 형식으로 바꿔준다 (기본값 채우기용).
-function toLocalInputValue(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-// datetime-local 입력값(초가 없음)을 백엔드가 받는 LocalDateTime 형식으로 보정한다.
-// 주의: 서버가 UTC로 돌고 있으면 여기서 입력한 "내 지역 시각" 그대로 저장되기 때문에
-// 실제로는 9시간 차이가 날 수 있다 — 화면에서 시간이 이상하게 보이면 9시간을 앞/뒤로 조정해보자.
-function toBackendDateTime(value: string): string {
-  return value.length === 16 ? `${value}:00` : value;
-}
-
 export default function AdminArtworkRow({
   row,
   onChange,
@@ -81,12 +68,8 @@ export default function AdminArtworkRow({
   const [error, setError] = useState<string | null>(null);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const now = new Date();
-  const [startPrice, setStartPrice] = useState(String(artwork.startPrice ?? ''));
-  const [minBidUnit, setMinBidUnit] = useState(String(Math.max(10_000, Math.round((artwork.startPrice ?? 0) * 0.02))));
-  const [previewStart, setPreviewStart] = useState(toLocalInputValue(new Date(now.getTime() - 60_000)));
-  const [previewEnd, setPreviewEnd] = useState(toLocalInputValue(new Date(now.getTime() + 60_000)));
-  const [auctionEndAt, setAuctionEndAt] = useState(toLocalInputValue(new Date(now.getTime() + 24 * 60 * 60_000)));
+  const canCreateAuction =
+    auctionStatus === 'none' && artwork.status !== 'PENDING_REVIEW' && artwork.status !== 'REJECTED';
 
   const [nextAuctionStatus, setNextAuctionStatus] = useState<AuctionStatus>(auction?.status ?? 'ONGOING');
   const [reopenEndAt, setReopenEndAt] = useState(() => reopenEndAfterDays(7));
@@ -117,49 +100,10 @@ export default function AdminArtworkRow({
     }
   };
 
-  const handleCreateAuction = async () => {
-    const parsedStartPrice = Number(startPrice);
-    const parsedMinBidUnit = Number(minBidUnit);
-    if (!Number.isInteger(parsedStartPrice) || parsedStartPrice <= 0) {
-      setError('시작가는 0보다 큰 정수로 입력해 주세요.');
-      return;
-    }
-    if (!Number.isInteger(parsedMinBidUnit) || parsedMinBidUnit <= 0) {
-      setError('최소 입찰 단위는 0보다 큰 정수로 입력해 주세요.');
-      return;
-    }
-    if (!previewStart || !previewEnd || !auctionEndAt) {
-      setError('프리뷰 시작/종료, 경매 마감 시각을 모두 입력해 주세요.');
-      return;
-    }
-    if (!(previewStart < previewEnd)) {
-      setError('프리뷰 시작 시각은 프리뷰 종료 시각보다 빨라야 합니다.');
-      return;
-    }
-    if (auctionEndAt < previewEnd) {
-      setError('경매 마감 시각은 프리뷰 종료 시각보다 빠를 수 없습니다.');
-      return;
-    }
-
-    setError(null);
-    setBusy(true);
-    try {
-      const created = await createAuction({
-        artworkId: artwork.id,
-        startPrice: parsedStartPrice,
-        minBidUnit: parsedMinBidUnit,
-        previewStart: toBackendDateTime(previewStart),
-        previewEnd: toBackendDateTime(previewEnd),
-        auctionEndAt: toBackendDateTime(auctionEndAt),
-      });
-      setNextAuctionStatus(created.status);
-      setShowCreateForm(false);
-      onChange({ artwork: { ...artwork, auctionId: created.id }, auctionStatus: 'loaded', auction: created });
-    } catch (cause) {
-      setError(errorMessage(cause, '경매 생성에 실패했습니다.'));
-    } finally {
-      setBusy(false);
-    }
+  const handleAuctionCreated = (created: Auction) => {
+    setNextAuctionStatus(created.status);
+    setShowCreateForm(false);
+    onChange({ artwork: { ...artwork, auctionId: created.id }, auctionStatus: 'loaded', auction: created });
   };
 
   const handleReopen = async () => {
@@ -274,99 +218,29 @@ export default function AdminArtworkRow({
         </div>
       )}
 
-      {auctionStatus === 'none' && artwork.status !== 'PENDING_REVIEW' && artwork.status !== 'REJECTED' && (
-        <div className="mt-3">
-          {!showCreateForm ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => setShowCreateForm(true)}
-              className="h-10 w-full rounded-[8px] border border-[#dfe0da] text-[13px] font-bold disabled:opacity-50"
-            >
-              경매 생성
-            </button>
-          ) : (
-            <div className="space-y-3 rounded-[10px] bg-[#f7f8f4] p-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[12px] font-semibold">시작가(원)</label>
-                  <input
-                    type="number"
-                    step="1"
-                    disabled={busy}
-                    value={startPrice}
-                    onChange={(event) => setStartPrice(event.target.value)}
-                    className="mt-1 h-10 w-full rounded-[8px] border border-[#dfe0da] bg-white px-2 text-[13px] outline-none focus:border-[#171717]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[12px] font-semibold">최소 입찰 단위</label>
-                  <input
-                    type="number"
-                    step="1"
-                    disabled={busy}
-                    value={minBidUnit}
-                    onChange={(event) => setMinBidUnit(event.target.value)}
-                    className="mt-1 h-10 w-full rounded-[8px] border border-[#dfe0da] bg-white px-2 text-[13px] outline-none focus:border-[#171717]"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[12px] font-semibold">프리뷰 시작</label>
-                <input
-                  type="datetime-local"
-                  disabled={busy}
-                  value={previewStart}
-                  onChange={(event) => setPreviewStart(event.target.value)}
-                  className="mt-1 h-10 w-full rounded-[8px] border border-[#dfe0da] bg-white px-2 text-[13px] outline-none focus:border-[#171717]"
-                />
-              </div>
-              <div>
-                <label className="block text-[12px] font-semibold">프리뷰 종료 (경매 시작)</label>
-                <input
-                  type="datetime-local"
-                  disabled={busy}
-                  value={previewEnd}
-                  onChange={(event) => setPreviewEnd(event.target.value)}
-                  className="mt-1 h-10 w-full rounded-[8px] border border-[#dfe0da] bg-white px-2 text-[13px] outline-none focus:border-[#171717]"
-                />
-              </div>
-              <div>
-                <label className="block text-[12px] font-semibold">경매 마감</label>
-                <input
-                  type="datetime-local"
-                  disabled={busy}
-                  value={auctionEndAt}
-                  onChange={(event) => setAuctionEndAt(event.target.value)}
-                  className="mt-1 h-10 w-full rounded-[8px] border border-[#dfe0da] bg-white px-2 text-[13px] outline-none focus:border-[#171717]"
-                />
-              </div>
-              <p className="text-[11px] leading-5 text-[#73756f]">
-                서버가 UTC로 동작 중이면 실제로는 9시간 차이가 날 수 있어요. 경매를 만든 뒤 바로 아래 상태를
-                &ldquo;진행 중&rdquo;으로 바꾸면 시간과 무관하게 즉시 입찰이 가능해집니다.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => setShowCreateForm(false)}
-                  className="h-10 flex-1 rounded-[8px] border border-[#dfe0da] bg-white text-[13px] font-bold disabled:opacity-50"
-                >
-                  취소
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={handleCreateAuction}
-                  className="h-10 flex-1 rounded-[8px] bg-[#a8ff00] text-[13px] font-bold disabled:opacity-50"
-                >
-                  {busy ? '생성 중...' : '경매 생성'}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* 폼을 닫아도 다시 열 때 기존 입력을 유지한다. */}
+      <div className="mt-3" hidden={!canCreateAuction}>
+        {canCreateAuction && !showCreateForm && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setShowCreateForm(true)}
+            className="h-10 w-full rounded-[8px] border border-[#dfe0da] text-[13px] font-bold disabled:opacity-50"
+          >
+            경매 생성
+          </button>
+        )}
+        <AdminAuctionCreateForm
+          artworkId={artwork.id}
+          artworkStartPrice={artwork.startPrice}
+          open={canCreateAuction && showCreateForm}
+          busy={busy}
+          onCancel={() => setShowCreateForm(false)}
+          onBusyChange={setBusy}
+          onError={setError}
+          onCreated={handleAuctionCreated}
+        />
+      </div>
 
       {auction && (
         <div className="mt-3 flex items-center gap-2 rounded-[10px] bg-[#f7f8f4] p-3">
