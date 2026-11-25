@@ -47,11 +47,10 @@ function OrderDetail({
     setFailure(error);
   }, []);
 
-  function reload() {
-    setOrder(null);
+  const refreshOrder = useCallback(() => {
     setFailure(null);
     setAttempt((current) => current + 1);
-  }
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -62,30 +61,38 @@ function OrderDetail({
       .then((data) => {
         if (!isCurrent()) return;
         if (data.winnerId !== memberId) {
-          setFailure(forbidden);
+          onAccessLost(forbidden);
           return;
         }
         setOrder(data);
       })
       .catch((error) => {
-        if (isCurrent()) setFailure(buyerOrderFailure(error, '주문 상세를 불러오지 못했습니다.'));
+        if (!isCurrent()) return;
+        const nextFailure = buyerOrderFailure(error, '주문 상세를 불러오지 못했습니다.');
+        if (!nextFailure.retryable) {
+          onAccessLost(nextFailure);
+          return;
+        }
+        setFailure(nextFailure);
       });
 
     return () => controller.abort();
-  }, [memberId, accessToken, settlementId, attempt]);
+  }, [memberId, accessToken, settlementId, attempt, onAccessLost]);
 
-  if (failure) return <OrderNotice failure={failure} onRetry={reload} />;
-  if (!order) return <p role="status">주문 상세를 불러오는 중…</p>;
+  const failureNotice = failure && <OrderNotice failure={failure} onRetry={refreshOrder} />;
+  if (!order) return failureNotice || <p role="status">주문 상세를 불러오는 중…</p>;
 
   return (
     <>
       <section aria-label="주문 정보" className="rounded-2xl border border-[#e6e7e2] p-4">
         <OrderSummary settlement={order} />
       </section>
+      {failureNotice}
       <OrderShipment
         session={{ memberId, accessToken }}
         order={order}
         onAccessLost={onAccessLost}
+        onOrderStateChanged={refreshOrder}
       />
     </>
   );

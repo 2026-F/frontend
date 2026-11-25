@@ -57,15 +57,18 @@ export default function OrderShipment({
   order,
   session: { accessToken, memberId },
   onAccessLost,
+  onOrderStateChanged,
 }: {
   order: Settlement;
   session: OrderSession;
   onAccessLost: (failure: OrderFailure) => void;
+  onOrderStateChanged: () => void;
 }) {
   const { id, paymentStatus } = order;
   const [load, setLoad] = useState<ShipmentLoad>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [saveBlocked, setSaveBlocked] = useState(false);
   const [notice, setNotice] = useState('');
   const [saveError, setSaveError] = useState('');
   const pendingSave = useRef<AbortController | null>(null);
@@ -112,7 +115,12 @@ export default function OrderShipment({
 
   async function saveAddress(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pendingSave.current || !canEdit || !isCurrentOrderSession({ memberId, accessToken }))
+    if (
+      pendingSave.current ||
+      saveBlocked ||
+      !canEdit ||
+      !isCurrentOrderSession({ memberId, accessToken })
+    )
       return;
 
     const fields = new FormData(event.currentTarget);
@@ -172,7 +180,9 @@ export default function OrderShipment({
         setNotice('발송 상태가 바뀌었습니다.');
         reload();
       } else if (response?.data?.code === 'SETTLEMENT_NOT_SHIPPABLE') {
+        setSaveBlocked(true);
         setSaveError('주문 상태가 바뀌어 배송지를 저장할 수 없습니다.');
+        onOrderStateChanged();
       } else {
         setSaveError(failure.message);
       }
@@ -190,6 +200,11 @@ export default function OrderShipment({
           {notice}
         </p>
       )}
+      {saveError && (
+        <p role="alert" className="mb-3 text-sm text-[#a32b21]">
+          {saveError}
+        </p>
+      )}
       {load.status === 'loading' && (
         <p role="status" className="text-sm">
           배송 정보를 불러오는 중…
@@ -203,7 +218,7 @@ export default function OrderShipment({
       )}
       {canEdit && (
         <form key={shipment?.updatedAt ?? 'new'} onSubmit={saveAddress} noValidate>
-          <fieldset disabled={saving} className="space-y-3 disabled:opacity-60">
+          <fieldset disabled={saving || saveBlocked} className="space-y-3 disabled:opacity-60">
             <legend className="sr-only">배송지 입력</legend>
             {addressFields.map(({ name, label, maxLength, autoComplete, ...field }) => (
               <label key={name} className="block text-sm font-semibold">
@@ -221,11 +236,6 @@ export default function OrderShipment({
                 />
               </label>
             ))}
-            {saveError && (
-              <p role="alert" className="text-sm text-[#a32b21]">
-                {saveError}
-              </p>
-            )}
             <button
               type="submit"
               className="min-h-11 w-full rounded-xl bg-[#a8ff00] px-4 text-sm font-extrabold"

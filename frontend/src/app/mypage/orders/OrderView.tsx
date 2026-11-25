@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 import Link from 'next/link';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import ArtworkImage from '@/components/ArtworkImage';
 import { fetchAuctionSummary } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -12,9 +12,40 @@ import type { AuctionSummary, Settlement } from '@/types';
 
 export type OrderSession = { memberId: number; accessToken: string };
 
+function readSharedAccessToken() {
+  try {
+    return window.localStorage.getItem('accessToken');
+  } catch {
+    return null;
+  }
+}
+
+function subscribeToOrderSession(onChange: () => void) {
+  const persist = useAuth.persist;
+  if (!persist) return () => {};
+  const authStorageKey = persist.getOptions().name;
+
+  function handleStorage(event: StorageEvent) {
+    if (event.storageArea !== window.localStorage) return;
+    if (event.key === authStorageKey && event.newValue !== null) {
+      void persist.rehydrate();
+    }
+    if (event.key === null || event.key === authStorageKey || event.key === 'accessToken') {
+      onChange();
+    }
+  }
+
+  window.addEventListener('storage', handleStorage);
+  return () => window.removeEventListener('storage', handleStorage);
+}
+
 export function isCurrentOrderSession({ memberId, accessToken }: OrderSession) {
   const current = useAuth.getState();
-  return current.member?.id === memberId && current.accessToken === accessToken;
+  return (
+    current.member?.id === memberId &&
+    current.accessToken === accessToken &&
+    readSharedAccessToken() === accessToken
+  );
 }
 
 export function OrderPage({
@@ -28,8 +59,16 @@ export function OrderPage({
 }) {
   const memberId = useAuth((state) => state.member?.id);
   const accessToken = useAuth((state) => state.accessToken);
+  const sharedAccessToken = useSyncExternalStore(
+    subscribeToOrderSession,
+    readSharedAccessToken,
+    () => null,
+  );
   const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
+  useEffect(() => {
+    void useAuth.persist?.rehydrate();
+    setReady(true);
+  }, []);
 
   return (
     <div className="px-5 pb-10 pt-6 text-[#171717]">
@@ -42,7 +81,7 @@ export function OrderPage({
       <h1 className="mb-6 mt-3 text-2xl font-extrabold tracking-tight">{title}</h1>
       {!ready ? (
         <p role="status">로그인 상태를 확인하는 중…</p>
-      ) : memberId && accessToken ? (
+      ) : memberId && accessToken && sharedAccessToken === accessToken ? (
         <div key={JSON.stringify([memberId, accessToken])}>
           {children({ memberId, accessToken })}
         </div>
