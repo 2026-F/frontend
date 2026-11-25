@@ -30,6 +30,8 @@ import type {
   SellerProfileUpdateRequest,
   Settlement,
   SettlementPaymentStatus,
+  Shipment,
+  ShippingAddressRequest,
 } from '@/types';
 
 // 서버 렌더링과 브라우저가 사용하는 API 주소를 구분한다. 인증 헤더는 브라우저 요청에만 붙인다.
@@ -486,17 +488,56 @@ export async function uploadArtworkMedia(
 // 흐름: 결제 요청(TOSS) → 토스 결제창 → 성공하면 승인(confirm) / 취소·실패하면 취소(cancel)
 // -----------------------------------------------------------------------
 
+type BuyerRequest = { accessToken: string; signal: AbortSignal };
+
+function buyerRequestConfig(request: BuyerRequest) {
+  return {
+    headers: { Authorization: `Bearer ${request.accessToken}` },
+    signal: request.signal,
+  };
+}
+
 /** 내 정산 목록. status를 주면 그 상태만 돌려준다. */
-export async function fetchMySettlements(status?: SettlementPaymentStatus): Promise<Settlement[]> {
+export async function fetchMySettlements(
+  status?: SettlementPaymentStatus,
+  request?: BuyerRequest,
+): Promise<Settlement[]> {
   const res = await api.get<Settlement[]>('/api/settlements/me', {
+    ...(request && buyerRequestConfig(request)),
     params: status ? { status } : undefined,
   });
   return res.data;
 }
 
+export async function fetchSettlement(settlementId: number, request: BuyerRequest): Promise<Settlement> {
+  const res = await api.get<Settlement>(`/api/settlements/${settlementId}`, buyerRequestConfig(request));
+  return res.data;
+}
+
+export async function fetchShipment(settlementId: number, request: BuyerRequest): Promise<Shipment> {
+  const res = await api.get<Shipment>(
+    `/api/settlements/${settlementId}/shipment`,
+    buyerRequestConfig(request),
+  );
+  return res.data;
+}
+
+export async function saveShippingAddress(
+  settlementId: number,
+  address: ShippingAddressRequest,
+  request: BuyerRequest,
+): Promise<Shipment> {
+  const res = await api.put<Shipment>(
+    `/api/settlements/${settlementId}/shipment`,
+    address,
+    buyerRequestConfig(request),
+  );
+  return res.data;
+}
+
 /** 경매 상세. 정산에는 auctionId만 있어서 작품 이름·이미지를 보여 주려면 이걸 따로 부른다. */
-export async function fetchAuctionSummary(auctionId: number): Promise<AuctionSummary> {
-  const res = await api.get<AuctionSummary>(`/api/auctions/${auctionId}`);
+export async function fetchAuctionSummary(auctionId: number, signal?: AbortSignal): Promise<AuctionSummary> {
+  const res = await api.get<AuctionSummary>(`/api/auctions/${auctionId}`, { signal });
   return res.data;
 }
 

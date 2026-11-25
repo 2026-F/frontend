@@ -240,6 +240,27 @@ export interface Settlement {
   expiredAt: string | null;
 }
 
+export interface ShippingAddressRequest {
+  recipientName: string;
+  recipientPhone: string;
+  zipCode: string;
+  address: string;
+  addressDetail: string;
+  requestMemo: string;
+}
+
+export interface Shipment extends Omit<ShippingAddressRequest, "addressDetail" | "requestMemo"> {
+  id: number;
+  settlementId: number;
+  addressDetail: string | null;
+  requestMemo: string | null;
+  carrier: string | null;
+  trackingNumber: string | null;
+  status: "READY" | "SHIPPED" | "DELIVERED";
+  shippedAt: string | null;
+  updatedAt: string;
+}
+
 export type PaymentMethod = "MOCK_PG" | "TOSS";
 
 /** 결제 시도 하나의 상태. REQUESTED는 결제창을 띄웠지만 아직 결과가 확정되지 않은 상태다. */
