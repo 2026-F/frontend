@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { fetchMySellerPayouts } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { formatWon } from '@/lib/format';
@@ -18,10 +18,38 @@ const noticeClass = 'mt-5 rounded-xl bg-[#f7f8f4] p-4 text-sm leading-6';
 const refreshClass =
   'inline-flex min-h-11 items-center rounded-lg border border-[#dedfd9] px-3 text-sm font-bold';
 
+function readSharedAccessToken() {
+  try {
+    return window.localStorage.getItem('accessToken');
+  } catch {
+    return null;
+  }
+}
+
+function subscribeToSession(onChange: () => void) {
+  const persist = useAuth.persist;
+  const authStorageKey = persist?.getOptions().name;
+  const handleStorage = (event: StorageEvent) => {
+    if (event.storageArea !== window.localStorage) return;
+    if (event.key === authStorageKey && event.newValue !== null) {
+      void persist?.rehydrate();
+    }
+    if (event.key === null || event.key === authStorageKey || event.key === 'accessToken') {
+      onChange();
+    }
+  };
+  window.addEventListener('storage', handleStorage);
+  return () => window.removeEventListener('storage', handleStorage);
+}
+
 export default function SellerPayoutsPage() {
   const { member, accessToken } = useAuth();
+  const sharedAccessToken = useSyncExternalStore(subscribeToSession, readSharedAccessToken, () => null);
   const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
+  useEffect(() => {
+    void useAuth.persist?.rehydrate();
+    setReady(true);
+  }, []);
 
   return (
     <div className="min-h-screen bg-white px-5 pb-10 pt-6 text-[#171717]">
@@ -36,7 +64,7 @@ export default function SellerPayoutsPage() {
         <p role="status" className={noticeClass}>
           로그인 상태를 확인하는 중…
         </p>
-      ) : !member || !accessToken ? (
+      ) : !member || !accessToken || sharedAccessToken !== accessToken ? (
         <LoginNotice message="지급 내역을 확인하려면 로그인해 주세요." />
       ) : member.role !== 'CONSIGNOR' ? (
         <p role="alert" className={noticeClass}>
@@ -79,7 +107,8 @@ function PayoutList({ memberId, accessToken }: { memberId: number; accessToken: 
         !controller.signal.aborted &&
         current.member?.id === memberId &&
         current.member.role === 'CONSIGNOR' &&
-        current.accessToken === accessToken
+        current.accessToken === accessToken &&
+        readSharedAccessToken() === accessToken
       );
     };
 
