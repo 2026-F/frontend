@@ -139,6 +139,15 @@ export default function MyPage() {
                 ›
               </span>
             </Link>
+            <Link
+              href="/mypage/seller/payouts"
+              className="flex min-h-[70px] items-center justify-between border-b border-[#dedfd9] text-[16px] font-bold"
+            >
+              지급 내역
+              <span className="text-[25px] font-normal" aria-hidden="true">
+                ›
+              </span>
+            </Link>
           </>
         )}
         {member.role === 'ADMIN' && (
