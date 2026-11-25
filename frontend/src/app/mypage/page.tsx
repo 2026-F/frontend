@@ -16,7 +16,7 @@ const STATS = [
 
 // href가 있는 메뉴는 연결된 화면으로 이동하고, 없는 메뉴는 아직 준비 중으로 보여 준다.
 const MENU: { label: string; href?: string }[] = [
-  { label: '주문 및 배송 현황' },
+  { label: '주문 및 배송 현황', href: '/mypage/orders' },
   { label: '결제 대기', href: '/mypage/payments' },
   { label: '환경 설정' },
 ];
