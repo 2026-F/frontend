@@ -226,6 +226,28 @@ export interface ArtworkMedia {
 /** 정산의 결제 상태. FAILED이면서 expiredAt이 있으면 결제 기한 만료다. */
 export type SettlementPaymentStatus = "PENDING" | "PAID" | "FAILED";
 
+export type SellerPayoutStatus = "READY" | "PAID";
+
+export interface SellerPayout {
+  id: number;
+  settlementId: number;
+  auctionId: number;
+  artworkId: number;
+  finalPrice: number;
+  commissionRate: number;
+  commissionAmount: number;
+  payoutAmount: number;
+  status: SellerPayoutStatus;
+  createdAt: string;
+  paidAt: string | null;
+}
+
+export interface SellerPayoutList {
+  readyAmount: number;
+  paidAmount: number;
+  payouts: SellerPayout[];
+}
+
 /** 정산(낙찰자에게 청구하는 금액). 경매가 마감되면 서버가 낙찰자 몫으로 하나 만든다. */
 export interface Settlement {
   id: number;

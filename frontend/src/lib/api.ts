@@ -28,6 +28,7 @@ import type {
   SellerProfile,
   SellerProfileRegisterRequest,
   SellerProfileUpdateRequest,
+  SellerPayoutList,
   Settlement,
   SettlementPaymentStatus,
   Shipment,
@@ -484,7 +485,7 @@ export async function uploadArtworkMedia(
 }
 
 // -----------------------------------------------------------------------
-// 정산·결제 (로그인 필요, 낙찰자 본인만). 백엔드: settlement/, payment/ 패키지
+// 정산·결제·지급 (로그인 필요). 백엔드: settlement/, payment/ 패키지
 // 흐름: 결제 요청(TOSS) → 토스 결제창 → 성공하면 승인(confirm) / 취소·실패하면 취소(cancel)
 // -----------------------------------------------------------------------
 
@@ -495,6 +496,17 @@ function buyerRequestConfig(request: BuyerRequest) {
     headers: { Authorization: `Bearer ${request.accessToken}` },
     signal: request.signal,
   };
+}
+
+export async function fetchMySellerPayouts(
+  accessToken: string,
+  signal: AbortSignal,
+): Promise<SellerPayoutList> {
+  const res = await api.get<SellerPayoutList>('/api/settlements/payouts/me', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    signal,
+  });
+  return res.data;
 }
 
 /** 내 정산 목록. status를 주면 그 상태만 돌려준다. */
