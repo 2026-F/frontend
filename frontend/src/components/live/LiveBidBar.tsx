@@ -69,9 +69,8 @@ function LiveBidBarInner({
 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("select");
-  const [amount, setAmount] = useState(initial.currentPrice + initial.minBidUnit);
-  const [customOpen, setCustomOpen] = useState(false);
-  const [customText, setCustomText] = useState("");
+  // 직접 입력은 문자열로 보관해 빈 입력과 금액이 선택된 상태를 구분한다.
+  const [selectedAmount, setSelectedAmount] = useState<number | string>(initial.currentPrice + initial.minBidUnit);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -85,26 +84,28 @@ function LiveBidBarInner({
   const isBiddable = isOngoing && remaining !== null && !remaining.isOver;
   const isLoggedIn = mounted && Boolean(member && accessToken);
   const minNext = auction.currentPrice + auction.minBidUnit;
+  const customOpen = typeof selectedAmount === "string";
+  const amount = selectedAmount === "" ? null : Number(selectedAmount);
+  const canOpen = !readOnly && isBiddable;
+  const canContinue = canOpen && isLoggedIn && amount !== null && amount >= minNext;
   const leading = isLoggedIn && bids.length > 0 && bids[0].bidderId === member?.id;
   const title = artwork?.title ?? `경매 #${auction.id}`;
   const subtitle = [artwork?.artist?.name, artwork?.productionYear].filter(Boolean).join(", ");
 
-  // 다른 사람이 입찰해 현재가가 오르면:
-  // 금액 선택 중이면 다음 최소 입찰가로 끌어올리고, 확인 단계였다면 확인한 금액을 몰래 바꾸지 않고 선택 단계로 돌려보낸다.
+  // 최소 입찰가가 오르면 빠른 금액을 갱신하고 직접 입력은 유지한다.
   useEffect(() => {
-    if (amount >= minNext) return;
+    if (submitting || amount === null || amount >= minNext) return;
     if (step === "confirm") {
       setStep("select");
       setNotice("현재가가 올라 금액을 다시 선택해 주세요.");
     }
-    setAmount(minNext);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [minNext]);
+    if (!customOpen) setSelectedAmount(minNext);
+  }, [amount, customOpen, minNext, step, submitting]);
 
   // 마감되면 열어 둔 입찰 시트를 닫는다.
   useEffect(() => {
-    if (!isBiddable) setOpen(false);
-  }, [isBiddable]);
+    if (!canOpen) setOpen(false);
+  }, [canOpen]);
 
   // Esc로 시트를 닫는다. 제출 중에는 닫지 않는다.
   useEffect(() => {
@@ -129,13 +130,11 @@ function LiveBidBarInner({
   );
 
   const openSheet = () => {
-    if (readOnly) return;
+    if (!canOpen || submitting) return;
     setError(null);
     setNotice(null);
     setStep("select");
-    setAmount(minNext);
-    setCustomOpen(false);
-    setCustomText("");
+    setSelectedAmount(minNext);
     setOpen(true);
   };
 
@@ -145,16 +144,12 @@ function LiveBidBarInner({
 
   const handleCustomChange = (text: string) => {
     const digits = text.replace(/[^0-9]/g, "").slice(0, 12);
-    setCustomText(digits);
+    setSelectedAmount(digits);
     setError(null);
-    if (digits) setAmount(Number(digits));
   };
 
   const goConfirm = () => {
-    if (amount < minNext) {
-      setError(`최소 ${formatWon(minNext)} 이상 입찰할 수 있습니다.`);
-      return;
-    }
+    if (!canContinue || submitting) return;
     setError(null);
     setNotice(null);
     setStep("confirm");
@@ -163,7 +158,7 @@ function LiveBidBarInner({
   const handleBid = async () => {
     // 버튼을 누른 순간의 서버 기준 남은 시간을 다시 확인한다. 최종 판정은 서버가 한다.
     const atSubmit = auctionRemaining(auction.auctionEndAt, clock, performance.now());
-    if (!isLoggedIn || !isBiddable || !atSubmit || atSubmit.isOver || submitting || amount < minNext) return;
+    if (!canContinue || !atSubmit || atSubmit.isOver || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -182,15 +177,14 @@ function LiveBidBarInner({
     }
   };
 
-  const estimate = estimatePayment(amount);
-  const canOpen = !readOnly;
+  const estimate = amount === null ? null : estimatePayment(amount);
 
   const card = (
     <div className="rounded-2xl bg-white p-3 text-copy-primary shadow-lg">
       <button
         type="button"
         onClick={openSheet}
-        disabled={!canOpen}
+        disabled={!canOpen || submitting}
         aria-haspopup={canOpen ? "dialog" : undefined}
         aria-label={canOpen ? `${title} 입찰 열기` : undefined}
         className="flex w-full items-center gap-3 text-left disabled:cursor-default"
@@ -238,7 +232,7 @@ function LiveBidBarInner({
     </div>
   );
 
-  const sheet = open && !readOnly && (
+  const sheet = open && canOpen && (
     <div className="absolute inset-0 z-20 flex flex-col justify-end">
       <button type="button" aria-label="입찰 닫기" onClick={closeSheet} className="absolute inset-0 bg-black/30" />
       <div
@@ -249,7 +243,7 @@ function LiveBidBarInner({
       >
         <div className="mx-auto mb-4 h-1 w-11 shrink-0 rounded-full bg-[#dededb]" />
 
-        {step === "select" ? (
+        {step === "select" || estimate === null ? (
           <>
             <h2 className="truncate text-lg font-bold">{title}</h2>
             <p className="mt-0.5 text-[13px] font-semibold tabular-nums">현재가 {formatWon(auction.currentPrice)}</p>
@@ -265,7 +259,7 @@ function LiveBidBarInner({
             </div>
             <div className="mt-1 flex items-center justify-between">
               <span className="text-xs text-[#5c5d58]">입찰 금액</span>
-              <span className="text-lg font-bold tabular-nums">{formatWon(amount)}</span>
+              <span className="text-lg font-bold tabular-nums">{estimate ? formatWon(estimate.bidPrice) : "—"}</span>
             </div>
             <p className="text-right text-[11px] text-[#8a8b86]">최소 다음 입찰가 {formatWon(minNext)}</p>
 
@@ -278,9 +272,8 @@ function LiveBidBarInner({
                     type="button"
                     key={add}
                     onClick={() => {
-                      setCustomOpen(false);
                       setError(null);
-                      setAmount(value);
+                      setSelectedAmount(value);
                     }}
                     aria-pressed={selected}
                     className={`rounded-full px-1 py-2.5 text-[11px] font-semibold tabular-nums ${
@@ -293,10 +286,7 @@ function LiveBidBarInner({
               })}
               <button
                 type="button"
-                onClick={() => {
-                  setCustomOpen(true);
-                  setCustomText(String(amount));
-                }}
+                onClick={() => setSelectedAmount(String(selectedAmount))}
                 aria-pressed={customOpen}
                 className={`rounded-full px-1 py-2.5 text-[11px] font-semibold ${
                   customOpen ? "bg-copy-primary text-white" : "bg-[#f2f2ef] text-[#5c5d58]"
@@ -309,7 +299,7 @@ function LiveBidBarInner({
             {customOpen && (
               <label className="mt-2 flex items-center gap-2 rounded-xl border border-[#dededb] px-4 py-2.5 focus-within:border-copy-primary">
                 <input
-                  value={customText ? Number(customText).toLocaleString("ko-KR") : ""}
+                  value={amount === null ? "" : amount.toLocaleString("ko-KR")}
                   onChange={(event) => handleCustomChange(event.target.value)}
                   inputMode="numeric"
                   autoFocus
@@ -323,7 +313,7 @@ function LiveBidBarInner({
 
             <div className="mt-4 flex items-center justify-between rounded-xl bg-[#f6f7f2] px-4 py-3.5">
               <span className="text-xs text-[#5c5d58]">예상 결제 금액</span>
-              <span className="text-base font-bold tabular-nums">{formatWon(estimate.total)}</span>
+              <span className="text-base font-bold tabular-nums">{estimate ? formatWon(estimate.total) : "—"}</span>
             </div>
 
             {notice && <p className="mt-3 text-xs font-semibold text-[#e0443e]">{notice}</p>}
@@ -337,10 +327,10 @@ function LiveBidBarInner({
               <button
                 type="button"
                 onClick={goConfirm}
-                disabled={amount < minNext}
+                disabled={!canContinue || submitting}
                 className="mt-5 h-12 w-full rounded-xl bg-lime-highlight text-[15px] font-bold tabular-nums disabled:opacity-40"
               >
-                {formatWon(amount)} 입찰
+                {estimate ? `${formatWon(estimate.bidPrice)} 입찰` : "입찰 금액 입력"}
               </button>
             ) : (
               <Link
@@ -376,7 +366,7 @@ function LiveBidBarInner({
             <p className="mt-0.5 text-xs text-[#5c5d58] tabular-nums">현재가 {formatWon(auction.currentPrice)}</p>
 
             <p className="mt-5 text-xs text-[#5c5d58]">입찰 금액</p>
-            <p className="text-[28px] font-black leading-tight tabular-nums">{formatWon(amount)}</p>
+            <p className="text-[28px] font-black leading-tight tabular-nums">{formatWon(estimate.bidPrice)}</p>
 
             <dl className="mt-4 space-y-2.5 rounded-xl bg-[#f6f7f2] px-4 py-3.5 text-xs">
               <div className="flex justify-between">
@@ -412,10 +402,10 @@ function LiveBidBarInner({
             <button
               type="button"
               onClick={handleBid}
-              disabled={submitting || amount < minNext}
+              disabled={submitting || !canContinue}
               className="mt-5 h-12 w-full rounded-xl bg-copy-primary text-[15px] font-bold text-white tabular-nums disabled:opacity-40"
             >
-              {submitting ? "입찰 중..." : `${formatWon(amount)} 입찰 제출`}
+              {submitting ? "입찰 중..." : `${formatWon(estimate.bidPrice)} 입찰 제출`}
             </button>
           </>
         )}
