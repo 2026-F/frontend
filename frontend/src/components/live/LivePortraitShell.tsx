@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+
+/** 바텀시트처럼 영상 기둥 전체를 덮어야 하는 요소를 띄울 자리. 채팅 스크롤 영역 안에서 잘리지 않게 포털로 보낸다. */
+const LiveOverlayContext = createContext<HTMLElement | null>(null);
+
+export function useLiveOverlayRoot() {
+  return useContext(LiveOverlayContext);
+}
 
 /**
  * 라이브 방송 전용 세로 전체 화면 틀.
@@ -8,6 +15,8 @@ import { useEffect } from "react";
  * 영상은 children 맨 앞에 absolute inset-0 + object-cover로 깔고, 그 위에 조작 요소를 올린다.
  */
 export default function LivePortraitShell({ children }: { children: React.ReactNode }) {
+  const [overlayRoot, setOverlayRoot] = useState<HTMLDivElement | null>(null);
+
   // 뒤에 깔린 페이지가 같이 스크롤되지 않게 막는다.
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -21,7 +30,8 @@ export default function LivePortraitShell({ children }: { children: React.ReactN
     <div className="fixed inset-0 z-[60] bg-black">
       {/* 휴대폰을 눕힌 것처럼 높이가 낮은 화면에서는 9:16 기둥이 너무 좁아지므로 가로 전체를 쓴다. */}
       <div className="relative mx-auto h-dvh w-full max-w-[calc(100dvh*9/16)] overflow-hidden bg-black text-white [@media(max-height:500px)]:max-w-none">
-        {children}
+        <LiveOverlayContext.Provider value={overlayRoot}>{children}</LiveOverlayContext.Provider>
+        <div ref={setOverlayRoot} />
       </div>
     </div>
   );
